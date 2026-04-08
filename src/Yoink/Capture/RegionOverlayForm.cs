@@ -19,6 +19,7 @@ public sealed partial class RegionOverlayForm : Form
 
     private CaptureMode _mode = CaptureMode.Rectangle;
     private CaptureMode _lastCaptureMode = CaptureMode.Rectangle;
+    private readonly Point _cursorAtLaunch;
     private bool _isSelecting;
     private Point _selectionStart;
     private Point _selectionEnd;
@@ -349,6 +350,11 @@ public sealed partial class RegionOverlayForm : Form
         _magGfx.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
         SetupForm();
+
+        // Capture cursor position for toolbar placement (convert to client coords)
+        var screenCursor = System.Windows.Forms.Cursor.Position;
+        _cursorAtLaunch = new Point(screenCursor.X - _virtualBounds.X, screenCursor.Y - _virtualBounds.Y);
+
         CalcToolbar();
 
         _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
@@ -494,7 +500,15 @@ public sealed partial class RegionOverlayForm : Form
             screenBounds = Screen.PrimaryScreen?.WorkingArea ?? _virtualBounds;
         }
 
-        _toolbarRect = ToolbarLayout.GetToolbarRect(_virtualBounds, screenBounds, w, h, CaptureDockSide);
+        // Position toolbar near cursor: ~150px to the top-right of where the cursor was at launch
+        int screenLeft = screenBounds.Left - _virtualBounds.Left;
+        int screenTop = screenBounds.Top - _virtualBounds.Top;
+        int marginPad = 8;
+        int tbX = Math.Clamp(_cursorAtLaunch.X + 150, screenLeft + marginPad,
+            Math.Max(screenLeft + marginPad, screenLeft + screenBounds.Width - w - marginPad));
+        int tbY = Math.Clamp(_cursorAtLaunch.Y - 150, screenTop + marginPad,
+            Math.Max(screenTop + marginPad, screenTop + screenBounds.Height - h - marginPad));
+        _toolbarRect = new Rectangle(tbX, tbY, w, h);
         int cx = _toolbarRect.X + pad;
         int cy = _toolbarRect.Y + pad;
         for (int i = 0; i < BtnCount; i++)
@@ -546,7 +560,7 @@ public sealed partial class RegionOverlayForm : Form
             }
             else
             {
-                flyX = _toolbarRect.Right - flyW;
+                flyX = _toolbarRect.X + (_toolbarRect.Width - flyW) / 2;
                 flyY = IsBottomDock ? _toolbarRect.Y - flyH - 8 : _toolbarRect.Bottom + 8;
                 flyX = Math.Clamp(flyX, 4, Math.Max(4, ClientSize.Width - flyW - 4));
                 flyY = Math.Clamp(flyY, 4, Math.Max(4, ClientSize.Height - flyH - 4));
