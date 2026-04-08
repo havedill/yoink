@@ -325,7 +325,8 @@ public sealed partial class RegionOverlayForm : Form
     public event Action? SelectionCancelled;
     public RegionOverlayForm(Bitmap screenshot, Rectangle virtualBounds,
         CaptureMode initialMode = CaptureMode.Rectangle,
-        WindowDetectionMode windowDetectionMode = WindowDetectionMode.WindowOnly)
+        WindowDetectionMode windowDetectionMode = WindowDetectionMode.WindowOnly,
+        Point? cursorAtLaunch = null)
     {
         _screenshot = screenshot;
         _virtualBounds = virtualBounds;
@@ -335,6 +336,10 @@ public sealed partial class RegionOverlayForm : Form
         _mode = initialMode;
         _lastCaptureMode = initialMode;
         _showTime = DateTime.UtcNow;
+
+        // Store cursor position from hotkey press (converted to client coords)
+        var screenCursor = cursorAtLaunch ?? System.Windows.Forms.Cursor.Position;
+        _cursorAtLaunch = new Point(screenCursor.X - _virtualBounds.X, screenCursor.Y - _virtualBounds.Y);
 
         // Cache pixels for color picker
         _pixelData = new int[_bmpW * _bmpH];
@@ -350,11 +355,6 @@ public sealed partial class RegionOverlayForm : Form
         _magGfx.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
         SetupForm();
-
-        // Capture cursor position for toolbar placement (convert to client coords)
-        var screenCursor = System.Windows.Forms.Cursor.Position;
-        _cursorAtLaunch = new Point(screenCursor.X - _virtualBounds.X, screenCursor.Y - _virtualBounds.Y);
-
         CalcToolbar();
 
         _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
@@ -490,10 +490,12 @@ public sealed partial class RegionOverlayForm : Form
                         + _sepAfter.Length * UiChrome.ToolbarGroupGap;
         int w = IsVerticalDock ? UiChrome.ToolbarHeight : primarySpan;
         int h = IsVerticalDock ? primarySpan : UiChrome.ToolbarHeight;
+        // Use the saved launch cursor (converted back to screen coords) for screen detection
+        var launchScreen = new Point(_cursorAtLaunch.X + _virtualBounds.X, _cursorAtLaunch.Y + _virtualBounds.Y);
         Rectangle screenBounds;
         try
         {
-            screenBounds = Screen.FromPoint(System.Windows.Forms.Cursor.Position).WorkingArea;
+            screenBounds = Screen.FromPoint(launchScreen).WorkingArea;
         }
         catch
         {
@@ -504,10 +506,10 @@ public sealed partial class RegionOverlayForm : Form
         int screenLeft = screenBounds.Left - _virtualBounds.Left;
         int screenTop = screenBounds.Top - _virtualBounds.Top;
         int marginPad = 8;
-        int tbX = Math.Clamp(_cursorAtLaunch.X + 150, screenLeft + marginPad,
-            Math.Max(screenLeft + marginPad, screenLeft + screenBounds.Width - w - marginPad));
-        int tbY = Math.Clamp(_cursorAtLaunch.Y - 150, screenTop + marginPad,
-            Math.Max(screenTop + marginPad, screenTop + screenBounds.Height - h - marginPad));
+        int maxX = Math.Max(screenLeft + marginPad, screenLeft + screenBounds.Width - w - marginPad);
+        int maxY = Math.Max(screenTop + marginPad, screenTop + screenBounds.Height - h - marginPad);
+        int tbX = Math.Clamp(_cursorAtLaunch.X + 150, screenLeft + marginPad, maxX);
+        int tbY = Math.Clamp(_cursorAtLaunch.Y - 150, screenTop + marginPad, maxY);
         _toolbarRect = new Rectangle(tbX, tbY, w, h);
         int cx = _toolbarRect.X + pad;
         int cy = _toolbarRect.Y + pad;

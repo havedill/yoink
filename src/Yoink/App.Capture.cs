@@ -257,6 +257,9 @@ public partial class App
 
     private void LaunchOverlayNow(CaptureMode initialMode)
     {
+        // Capture cursor position now, before the background thread runs
+        var cursorPos = System.Windows.Forms.Cursor.Position;
+
         var thread = new Thread(() =>
         {
             Bitmap? screenshot = null;
@@ -266,7 +269,7 @@ public partial class App
                 var (bmp, bounds) = ScreenCapture.CaptureCurrentScreen(showCursor);
                 screenshot = bmp;
 
-                var overlay = new RegionOverlayForm(screenshot, bounds, initialMode, _settingsService!.Settings.WindowDetection)
+                var overlay = new RegionOverlayForm(screenshot, bounds, initialMode, _settingsService!.Settings.WindowDetection, cursorPos)
                 {
                     ShowCrosshairGuides = _settingsService!.Settings.ShowCrosshairGuides,
                     DetectWindows = _settingsService.Settings.DetectWindows,
