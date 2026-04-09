@@ -22,8 +22,8 @@ public sealed record UpdateCheckResult(
 
 public static class UpdateService
 {
-    private const string LatestReleaseApiUrl = "https://api.github.com/repos/jasperdevs/yoink/releases/latest";
-    private const string ReleasesPageUrl = "https://github.com/jasperdevs/yoink/releases/latest";
+    private const string LatestReleaseApiUrl = "https://api.github.com/repos/havedill/yoink/releases/latest";
+    private const string ReleasesPageUrl = "https://github.com/havedill/yoink/releases/latest";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
 
     private static readonly HttpClient Http = CreateHttpClient();
