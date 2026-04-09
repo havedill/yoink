@@ -48,6 +48,22 @@ public sealed partial class RegionOverlayForm
         Native.User32.SetForegroundWindow(Handle);
         Focus();
 
+        // Schedule a delayed focus re-acquisition to catch focus theft that
+        // can occur after OnShown returns (e.g. from child window creation,
+        // window detection, or animation timers completing).
+        var focusTimer = new System.Windows.Forms.Timer { Interval = 150 };
+        focusTimer.Tick += (_, _) =>
+        {
+            focusTimer.Stop();
+            focusTimer.Dispose();
+            if (!IsDisposed && !Disposing && Visible)
+            {
+                Native.User32.SetForegroundWindow(Handle);
+                Focus();
+            }
+        };
+        focusTimer.Start();
+
         Invalidate();
         Update();
 
