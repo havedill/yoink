@@ -11,6 +11,13 @@ public sealed partial class RegionOverlayForm
     {
         if (keyData == Keys.Escape)
         {
+            // In capture select modes, Escape exits print screen entirely
+            if (_mode == CaptureMode.Rectangle || _mode == CaptureMode.Freeform)
+            {
+                Cancel();
+                return true;
+            }
+
             // Close all popups and transient state in one pass
             bool anyClosed = false;
             if (_mode == CaptureMode.ColorPicker) { CloseMagWindow(); anyClosed = true; }
