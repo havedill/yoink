@@ -7,27 +7,30 @@
 </p>
 
 <p align="center">
+  <em>Fork of <a href="https://github.com/jasperdevs/yoink">jasperdevs/yoink</a> with UX improvements for the capture overlay workflow.</em>
+</p>
+
+<p align="center">
   Capture, annotate, OCR, translate, make stickers, record video, save locally, search images with OCR, and many more features.
 </p>
 
 <p align="center">
-  <a href="https://github.com/jasperdevs/yoink/releases/latest">
-    <img src="https://img.shields.io/github/v/release/jasperdevs/yoink?style=flat-square&color=1962F4" alt="Release" />
+  <a href="https://github.com/havedill/yoink/releases/latest">
+    <img src="https://img.shields.io/github/v/release/havedill/yoink?style=flat-square&color=1962F4" alt="Release" />
   </a>
-  <a href="https://github.com/jasperdevs/yoink/releases">
-    <img src="https://img.shields.io/github/downloads/jasperdevs/yoink/total?style=flat-square&cacheSeconds=300" alt="Downloads" />
+  <a href="https://github.com/havedill/yoink/releases">
+    <img src="https://img.shields.io/github/downloads/havedill/yoink/total?style=flat-square&cacheSeconds=300" alt="Downloads" />
   </a>
-  <a href="https://github.com/jasperdevs/yoink/stargazers">
-  <img src="https://img.shields.io/github/stars/jasperdevs/yoink?style=flat-square" alt="Stars" />
-</a>
-  <a href="https://github.com/jasperdevs/yoink/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/jasperdevs/yoink?style=flat-square" alt="License" />
+  <a href="https://github.com/havedill/yoink/stargazers">
+    <img src="https://img.shields.io/github/stars/havedill/yoink?style=flat-square" alt="Stars" />
+  </a>
+  <a href="https://github.com/havedill/yoink/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/havedill/yoink?style=flat-square" alt="License" />
   </a>
 </p>
 
-
 <p align="center">
-  <a href="https://github.com/jasperdevs/yoink/releases/latest">
+  <a href="https://github.com/havedill/yoink/releases/latest">
     <img src="https://img.shields.io/badge/windows-download-1962F4?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" />
   </a>
   <img src="https://img.shields.io/badge/macos-planned-6b7280?style=for-the-badge&logo=apple&logoColor=white" alt="macOS Planned" />
@@ -38,16 +41,29 @@
 <img width="947" height="490" alt="image" src="assets/screenshot-main.png" />
 </p>
 
+## Fork Changes
+
+This fork is based on [jasperdevs/yoink](https://github.com/jasperdevs/yoink) v0.8.3.2 and includes the following changes:
+
+### Print Screen hotkey support
+The Windows `RegisterHotKey()` API cannot intercept the Print Screen key because the OS handles it at a lower level. This fork adds a low-level keyboard hook (`WH_KEYBOARD_LL`) that catches Print Screen before Windows processes it, so it can be used as a capture hotkey.
+
+### Capture overlay UX improvements
+- **Toolbar appears near the cursor** -- The annotation toolbar now spawns ~150px to the top-right of where the cursor was when capture was triggered, instead of docking to a screen edge. Cursor position is captured on the main thread at hotkey press to avoid race conditions on multi-monitor setups.
+- **Annotation tools flyout opens by default** -- The "more tools" flyout (arrow, text, blur, draw, etc.) opens automatically when the capture overlay appears, so tools are immediately accessible without clicking the "..." button.
+- **Smarter Escape key behavior** -- Escape now follows a priority chain: (1) cancel an active operation (mid-drag, popup, typing), (2) return to the last capture tool if currently using an annotation tool, (3) close the overlay. In rectangle/freeform select mode, Escape exits the overlay in a single press instead of requiring two.
+- **Keyboard focus fix** -- The overlay re-acquires keyboard focus after toolbar creation, fixing an issue where Escape and other keys would not register on the first capture.
+
+### Auto-update pointed to this fork
+Auto-update checks now point to `havedill/yoink` releases instead of the upstream repository.
+
+---
+
 ## Download
 
-Grab the latest release from the [**Releases page**](https://github.com/jasperdevs/yoink/releases/latest).
+Grab the latest release from the [**Releases page**](https://github.com/havedill/yoink/releases/latest).
 
-## Winget
-
-```powershell
-winget install --id JasperDevs.Yoink -e
-winget upgrade --id JasperDevs.Yoink -e
-```
+> Upstream releases are available at [jasperdevs/yoink](https://github.com/jasperdevs/yoink/releases/latest).
 
 ## Why Yoink
 
@@ -132,28 +148,13 @@ Sticker uploads use the same upload destinations as normal image uploads.
 ## Build from source
 
 ```
-git clone https://github.com/jasperdevs/yoink.git
+git clone https://github.com/havedill/yoink.git
 cd yoink
 dotnet publish src/Yoink/Yoink.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o release
 ```
 
 Requires [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
 
-## Star History
+## Acknowledgments
 
-<a href="https://www.star-history.com/?repos=jasperdevs%2Fyoink&type=timeline&legend=top-left">
-  <picture>
-    <source
-      media="(prefers-color-scheme: dark)"
-      srcset="https://api.star-history.com/chart?repos=jasperdevs/yoink&type=timeline&theme=dark&legend=top-left&t=1743916800"
-    />
-    <source
-      media="(prefers-color-scheme: light)"
-      srcset="https://api.star-history.com/chart?repos=jasperdevs/yoink&type=timeline&legend=top-left&t=1743916800"
-    />
-    <img
-      alt="Star History Chart"
-      src="https://api.star-history.com/chart?repos=jasperdevs/yoink&type=timeline&legend=top-left&t=1743916800"
-    />
-  </picture>
-</a>
+This project is a fork of [jasperdevs/yoink](https://github.com/jasperdevs/yoink), licensed under [GPL-3.0](LICENSE). All credit for the core application goes to the original authors.
