@@ -29,10 +29,6 @@
 
   <ItemGroup>
     <Resource Include="yoink.ico" />
-    <Content Include="Assets\Clip\**\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
     <Resource Include="Assets\amazon.png" />
     <Resource Include="Assets\aws_sq.png" />
     <Resource Include="Assets\aws_official.svg" />
