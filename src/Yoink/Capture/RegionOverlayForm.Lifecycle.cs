@@ -43,6 +43,11 @@ public sealed partial class RegionOverlayForm
             RefreshToolbar();
         }
 
+        // Re-acquire keyboard focus after toolbar creation to ensure
+        // key events (e.g. Escape) are received immediately on open
+        Native.User32.SetForegroundWindow(Handle);
+        Focus();
+
         Invalidate();
         Update();
 
