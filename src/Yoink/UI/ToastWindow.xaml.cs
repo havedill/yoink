@@ -331,9 +331,18 @@ public partial class ToastWindow : Window
             CloseBtn.Visibility = Visibility.Visible;
             PinBtn.Visibility = Visibility.Visible;
             SaveBtn.Visibility = Visibility.Visible;
-            UploadBtn.Visibility = spec.ShowUploadButton && !string.IsNullOrEmpty(spec.FilePath)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            if (spec.ShowUploadButton && !string.IsNullOrEmpty(spec.FilePath))
+            {
+                UploadBtn.Visibility = Visibility.Visible;
+                // Upload is the primary CTA on a preview — keep it always visible,
+                // unlike Close/Pin/Save which fade in on hover.
+                UploadBtn.BeginAnimation(OpacityProperty, null);
+                UploadBtn.Opacity = 1;
+            }
+            else
+            {
+                UploadBtn.Visibility = Visibility.Collapsed;
+            }
         }
         else
         {
@@ -462,8 +471,8 @@ public partial class ToastWindow : Window
         CloseBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
         SaveBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
         PinBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity == 0 ? pinnedOpacity : targetOpacity, 150, Motion.SmoothOut));
-        if (UploadBtn.Visibility == Visibility.Visible)
-            UploadBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
+        // UploadBtn intentionally stays at opacity 1 (see ConfigureImagePreview) —
+        // it's the primary CTA and should remain visible without requiring hover.
     }
 
     private void UpdateRootClip()

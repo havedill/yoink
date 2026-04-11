@@ -86,7 +86,9 @@ public partial class App
                         }
                         else if (firstFrame != null)
                         {
-                            ToastWindow.ShowImagePreview(firstFrame, path, false);
+                            bool canUploadRecordingFromToast = !string.IsNullOrEmpty(path)
+                                && settings.ImageUploadDestination != UploadDestination.None;
+                            ToastWindow.ShowImagePreview(firstFrame, path, false, canUploadRecordingFromToast);
                         }
                         else
                         {
