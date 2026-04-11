@@ -9,10 +9,44 @@ public sealed partial class RegionOverlayForm
     // ProcessCmdKey always receives ESC (OnKeyDown sometimes doesn't)
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
+        // Enter key: in the annotation phase, confirms the capture and bakes annotations.
+        if (keyData == Keys.Enter || keyData == Keys.Return)
+        {
+            if (_selectionCommitted && !_isTyping && !_emojiPickerOpen && !_fontPickerOpen)
+            {
+                ConfirmCapture();
+                return true;
+            }
+        }
+
         if (keyData == Keys.Escape)
         {
-            // In capture select modes, Escape exits print screen entirely
-            if (_mode == CaptureMode.Rectangle || _mode == CaptureMode.Freeform)
+            // Annotation phase: Escape wipes annotations but keeps the selection locked
+            // so the user can start over without restarting the capture.
+            if (_selectionCommitted)
+            {
+                // Let popups/transient state close first via the generic handler below.
+                // If none are active, clear the annotations instead.
+                if (!_emojiPickerOpen && !_fontPickerOpen && !_colorPickerOpen
+                    && !_isPlacingEmoji && !_isRulerDragging && !_isArrowDragging
+                    && !_isLineDragging && !_isCurvedArrowDragging && !_isBlurring
+                    && !_isEraserDragging && !_isHighlighting && !_isRectShapeDragging
+                    && !_isCircleShapeDragging && !_isSelectDragging && !_isSelectResizing
+                    && _selectedAnnotationIndex < 0 && !_isTyping)
+                {
+                    if (_undoStack.Count > 0)
+                    {
+                        _undoStack.Clear();
+                        _nextStepNumber = 1;
+                        MarkCommittedAnnotationsDirty();
+                        Invalidate();
+                    }
+                    return true;
+                }
+            }
+
+            // Pre-commit selection phase: Escape exits print screen entirely.
+            if (!_selectionCommitted && (_mode == CaptureMode.Rectangle || _mode == CaptureMode.Freeform))
             {
                 Cancel();
                 return true;
@@ -51,6 +85,12 @@ public sealed partial class RegionOverlayForm
                 RefreshToolbar();
                 return true;
             }
+
+            // In the annotation phase, Escape never cancels or switches modes once all
+            // popups/drags have been closed above. The user stays locked into their
+            // committed selection (the earlier annotation-wipe branch handled empty state).
+            if (_selectionCommitted)
+                return true;
 
             // If in an annotation tool, return to the last capture mode instead of closing
             if (ToolDef.IsAnnotationTool(_mode))
