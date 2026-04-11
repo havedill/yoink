@@ -437,9 +437,14 @@ public partial class ToastWindow : Window
         if (handler is null)
             return;
 
+        // Pin the toast so it doesn't auto-dismiss while the upload kicks off.
+        // UploadFileAsync will immediately call ToastWindow.Show("Uploading to …")
+        // which replaces this toast in-place via TryUpdateInPlace, and the final
+        // "Uploaded" / error toast will replace that one when the upload finishes.
+        ApplyPinnedState(true);
+
         try { handler.Invoke(path); }
         catch { }
-        DismissAnimated();
     }
 
     private void ApplyPinnedState(bool pinned)

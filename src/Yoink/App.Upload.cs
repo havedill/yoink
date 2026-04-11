@@ -49,6 +49,19 @@ public partial class App
                 return;
             }
 
+            // Show an "Uploading..." status toast immediately so the user knows the
+            // upload is in progress. Pinned so it stays visible until the success or
+            // error toast replaces it via ToastWindow.TryUpdateInPlace.
+            var destName = UploadService.GetName(dest);
+            var fileName = filePath != null ? Path.GetFileName(filePath) : null;
+            ToastWindow.Show(new ToastSpec
+            {
+                Title = $"Uploading to {destName}…",
+                Body = fileName ?? "",
+                FilePath = filePath,
+                AutoPin = true
+            });
+
             SoundService.PlayUploadStartSound();
             var result = await UploadService.UploadAsync(filePath, dest, settings);
 
