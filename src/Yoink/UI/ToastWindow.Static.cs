@@ -13,6 +13,13 @@ public partial class ToastWindow
 {
     private const string DefaultImagePreviewTitle = "";
 
+    /// <summary>
+    /// Invoked when the user clicks the "Upload" overlay button on a preview toast.
+    /// App registers a handler during startup to route the request to UploadFileAsync.
+    /// The argument is the path to the persisted capture file.
+    /// </summary>
+    public static Action<string>? UploadRequestHandler { get; set; }
+
     public static void SetPosition(Yoink.Models.ToastPosition position) => _position = position;
     public static void SetDuration(double seconds) => _durationSeconds = Math.Clamp(seconds, 1, 10);
     public static void SetFadeOutBehavior(bool enabled, double seconds)
@@ -53,12 +60,12 @@ public partial class ToastWindow
     public static void ShowError(string title, string body = "", string? filePath = null)
         => Show(ToastSpec.Error(title, body, filePath));
 
-    public static void ShowImagePreview(Bitmap screenshot, string? filePath, bool autoPin)
+    public static void ShowImagePreview(Bitmap screenshot, string? filePath, bool autoPin, bool showUploadButton = false)
     {
-        ShowImagePreview(screenshot, DefaultImagePreviewTitle, "", filePath, autoPin);
+        ShowImagePreview(screenshot, DefaultImagePreviewTitle, "", filePath, autoPin, showUploadButton);
     }
 
-    public static void ShowImagePreview(Bitmap screenshot, string title, string body, string? filePath, bool autoPin)
+    public static void ShowImagePreview(Bitmap screenshot, string title, string body, string? filePath, bool autoPin, bool showUploadButton = false)
     {
         Show(ToastSpec.ImagePreview(
             screenshot,
@@ -67,7 +74,8 @@ public partial class ToastWindow
             filePath,
             autoPin,
             transparentShell: false,
-            showOverlayButtons: true));
+            showOverlayButtons: true,
+            showUploadButton: showUploadButton));
     }
 
     private static void OpenFileLocation(string? filePath)

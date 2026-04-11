@@ -75,9 +75,12 @@ public partial class App
                     }
                     else
                     {
+                        bool canUploadFromToast = persisted.FilePath != null
+                            && settings.ImageUploadDestination != UploadDestination.None;
+
                         if (ShouldPreviewAfterCapture(action))
                         {
-                            ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews);
+                            ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews, canUploadFromToast);
                         }
                         else
                         {
@@ -133,9 +136,15 @@ public partial class App
                         ClipboardService.CopyToClipboard(persisted.Output);
                     _isCapturing = false;
 
+                    bool willAutoUploadSticker = persisted.FilePath != null && settings.AutoUploadScreenshots
+                        && settings.ImageUploadDestination != UploadDestination.None;
+                    bool canUploadStickerFromToast = !willAutoUploadSticker
+                        && persisted.FilePath != null
+                        && settings.ImageUploadDestination != UploadDestination.None;
+
                     if (ShouldPreviewAfterCapture(action))
                     {
-                        ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews);
+                        ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews, canUploadStickerFromToast);
                     }
                     else
                     {
@@ -143,10 +152,9 @@ public partial class App
                         ToastWindow.Show(ShouldCopyAfterCapture(action) ? "Sticker copied" : "Sticker ready");
                     }
 
-                    if (persisted.FilePath != null && settings.AutoUploadScreenshots
-                        && settings.ImageUploadDestination != UploadDestination.None)
+                    if (willAutoUploadSticker)
                     {
-                        _ = UploadFileAsync(persisted.FilePath, "Sticker", persisted.HistoryEntry);
+                        _ = UploadFileAsync(persisted.FilePath!, "Sticker", persisted.HistoryEntry);
                     }
 
                     ScheduleIdleMemoryTrim();

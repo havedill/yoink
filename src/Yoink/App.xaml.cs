@@ -156,6 +156,7 @@ public partial class App : Application
         ToastWindow.SetPosition(_settingsService.Settings.ToastPosition);
         ToastWindow.SetDuration(_settingsService.Settings.ToastDurationSeconds);
         ToastWindow.SetFadeOutBehavior(_settingsService.Settings.ToastFadeOutEnabled, _settingsService.Settings.ToastFadeOutSeconds);
+        ToastWindow.UploadRequestHandler = path => _ = UploadFileAsync(path, "Screenshot");
 
         _idleTrimTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _idleTrimTimer.Tick += (_, _) => TrimIdleMemory();

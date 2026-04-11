@@ -239,6 +239,7 @@ public partial class ToastWindow : Window
             CloseBtn.Visibility = Visibility.Collapsed;
             PinBtn.Visibility = Visibility.Collapsed;
             SaveBtn.Visibility = Visibility.Collapsed;
+            UploadBtn.Visibility = Visibility.Collapsed;
         }
 
         if (spec.TransparentShell)
@@ -330,6 +331,13 @@ public partial class ToastWindow : Window
             CloseBtn.Visibility = Visibility.Visible;
             PinBtn.Visibility = Visibility.Visible;
             SaveBtn.Visibility = Visibility.Visible;
+            UploadBtn.Visibility = spec.ShowUploadButton && !string.IsNullOrEmpty(spec.FilePath)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+        else
+        {
+            UploadBtn.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -356,6 +364,7 @@ public partial class ToastWindow : Window
         CloseBtn.MouseLeftButtonDown -= CloseBtn_MouseLeftButtonDown;
         PinBtn.MouseLeftButtonDown -= PinBtn_MouseLeftButtonDown;
         SaveBtn.MouseLeftButtonDown -= SaveBtn_MouseLeftButtonDown;
+        UploadBtn.MouseLeftButtonDown -= UploadBtn_MouseLeftButtonDown;
 
         if (!_spec.ShowOverlayButtons || _previewBitmap is null)
             return;
@@ -363,6 +372,9 @@ public partial class ToastWindow : Window
         CloseBtn.MouseLeftButtonDown += CloseBtn_MouseLeftButtonDown;
         PinBtn.MouseLeftButtonDown += PinBtn_MouseLeftButtonDown;
         SaveBtn.MouseLeftButtonDown += SaveBtn_MouseLeftButtonDown;
+
+        if (_spec.ShowUploadButton && !string.IsNullOrEmpty(_savedFilePath))
+            UploadBtn.MouseLeftButtonDown += UploadBtn_MouseLeftButtonDown;
     }
 
     private void CloseBtn_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -405,6 +417,22 @@ public partial class ToastWindow : Window
         Show(ToastSpec.Standard("Saved", Path.GetFileName(dlg.FileName)));
     }
 
+    private void UploadBtn_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        var path = _savedFilePath;
+        if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            return;
+
+        var handler = UploadRequestHandler;
+        if (handler is null)
+            return;
+
+        try { handler.Invoke(path); }
+        catch { }
+        DismissAnimated();
+    }
+
     private void ApplyPinnedState(bool pinned)
     {
         _isPinned = pinned;
@@ -434,6 +462,8 @@ public partial class ToastWindow : Window
         CloseBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
         SaveBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
         PinBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity == 0 ? pinnedOpacity : targetOpacity, 150, Motion.SmoothOut));
+        if (UploadBtn.Visibility == Visibility.Visible)
+            UploadBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
     }
 
     private void UpdateRootClip()
@@ -452,7 +482,8 @@ public partial class ToastWindow : Window
     {
         if (IsChildOf(e.OriginalSource as DependencyObject, CloseBtn) ||
             IsChildOf(e.OriginalSource as DependencyObject, PinBtn) ||
-            IsChildOf(e.OriginalSource as DependencyObject, SaveBtn))
+            IsChildOf(e.OriginalSource as DependencyObject, SaveBtn) ||
+            IsChildOf(e.OriginalSource as DependencyObject, UploadBtn))
         {
             return;
         }
