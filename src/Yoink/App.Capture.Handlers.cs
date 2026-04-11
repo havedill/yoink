@@ -60,8 +60,7 @@ public partial class App
                 {
                     var action = NormalizeAfterCaptureAction(settings.AfterCapture);
                     bool willPreview = ShouldPreviewAfterCapture(action);
-                    bool willUpload = persisted.FilePath != null
-                        && settings.AutoUploadScreenshots
+                    bool canUploadFromToast = persisted.FilePath != null
                         && settings.ImageUploadDestination != UploadDestination.None;
 
                     _isCapturing = false; // unlock the capture pipeline immediately
@@ -70,29 +69,23 @@ public partial class App
                     // dispatcher) BEFORE starting the background PNG encode. This keeps
                     // reads of the GDI+ bitmap serialized — the preview's ToBitmapSource
                     // call finishes before the clipboard task's Bitmap.Save begins.
-                    if (willPreview && !willUpload)
-                        ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews);
+                    if (willPreview)
+                        ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews, canUploadFromToast);
 
                     Task copyTask = Task.CompletedTask;
                     if (ShouldCopyAfterCapture(action))
                         copyTask = ClipboardService.CopyToClipboardAsync(persisted.Output);
 
-                    if (willUpload)
-                    {
-                        // Wait for the clipboard encode to finish before disposing the bitmap.
-                        try { await copyTask; } catch { }
-                        persisted.Output.Dispose();
-                        _ = UploadFileAsync(persisted.FilePath!, "Screenshot", persisted.HistoryEntry);
-                    }
-                    else if (!willPreview)
+                    if (!willPreview)
                     {
                         try { await copyTask; } catch { }
                         persisted.Output.Dispose();
                         ToastWindow.Show("Screenshot ready", "", persisted.FilePath);
                     }
-                    // willPreview && !willUpload: the preview window retains the bitmap
-                    // via ToastWindow._previewBitmap, so the clipboard task can finish in
-                    // the background without an explicit await.
+                    // willPreview: the preview window retains the bitmap via
+                    // ToastWindow._previewBitmap, so the clipboard task can finish in
+                    // the background without an explicit await. The user can click the
+                    // preview's Upload button to upload on demand.
 
                     ScheduleIdleMemoryTrim();
                 });
@@ -139,6 +132,8 @@ public partial class App
                     var action = NormalizeAfterCaptureAction(settings.AfterCapture);
                     bool willPreview = ShouldPreviewAfterCapture(action);
                     bool willCopy = ShouldCopyAfterCapture(action);
+                    bool canUploadStickerFromToast = persisted.FilePath != null
+                        && settings.ImageUploadDestination != UploadDestination.None;
 
                     _isCapturing = false;
 
@@ -146,7 +141,7 @@ public partial class App
                     // a BitmapSource on the dispatcher), then kick off the PNG encode on
                     // a background thread so the two reads don't interleave.
                     if (willPreview)
-                        ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews);
+                        ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews, canUploadStickerFromToast);
 
                     Task copyTask = Task.CompletedTask;
                     if (willCopy)
@@ -160,12 +155,6 @@ public partial class App
                     }
                     // willPreview: the preview window retains the bitmap for the lifetime
                     // of the clipboard encode task.
-
-                    if (persisted.FilePath != null && settings.AutoUploadScreenshots
-                        && settings.ImageUploadDestination != UploadDestination.None)
-                    {
-                        _ = UploadFileAsync(persisted.FilePath, "Sticker", persisted.HistoryEntry);
-                    }
 
                     ScheduleIdleMemoryTrim();
                 });

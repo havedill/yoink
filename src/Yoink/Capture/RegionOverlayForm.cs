@@ -520,15 +520,23 @@ public sealed partial class RegionOverlayForm : Form
             screenBounds = Screen.PrimaryScreen?.WorkingArea ?? _virtualBounds;
         }
 
-        // Position toolbar near cursor: ~150px to the top-right of where the cursor was at launch
-        int screenLeft = screenBounds.Left - _virtualBounds.Left;
-        int screenTop = screenBounds.Top - _virtualBounds.Top;
-        int marginPad = 8;
-        int maxX = Math.Max(screenLeft + marginPad, screenLeft + screenBounds.Width - w - marginPad);
-        int maxY = Math.Max(screenTop + marginPad, screenTop + screenBounds.Height - h - marginPad);
-        int tbX = Math.Clamp(_cursorAtLaunch.X + 150, screenLeft + marginPad, maxX);
-        int tbY = Math.Clamp(_cursorAtLaunch.Y - 150, screenTop + marginPad, maxY);
-        _toolbarRect = new Rectangle(tbX, tbY, w, h);
+        if (IsNearMouseDock)
+        {
+            // Position toolbar near cursor: ~150px to the top-right of where the cursor was at launch
+            int screenLeft = screenBounds.Left - _virtualBounds.Left;
+            int screenTop = screenBounds.Top - _virtualBounds.Top;
+            int marginPad = 8;
+            int maxX = Math.Max(screenLeft + marginPad, screenLeft + screenBounds.Width - w - marginPad);
+            int maxY = Math.Max(screenTop + marginPad, screenTop + screenBounds.Height - h - marginPad);
+            int tbX = Math.Clamp(_cursorAtLaunch.X + 150, screenLeft + marginPad, maxX);
+            int tbY = Math.Clamp(_cursorAtLaunch.Y - 150, screenTop + marginPad, maxY);
+            _toolbarRect = new Rectangle(tbX, tbY, w, h);
+        }
+        else
+        {
+            // Fixed dock position (Top/Bottom/Left/Right) — reuses the shared layout helper.
+            _toolbarRect = Helpers.ToolbarLayout.GetToolbarRect(_virtualBounds, screenBounds, w, h, CaptureDockSide);
+        }
         int cx = _toolbarRect.X + pad;
         int cy = _toolbarRect.Y + pad;
         for (int i = 0; i < BtnCount; i++)

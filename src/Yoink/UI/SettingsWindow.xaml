@@ -438,6 +438,7 @@
                                     <ComboBoxItem Content="Bottom"/>
                                     <ComboBoxItem Content="Left"/>
                                     <ComboBoxItem Content="Right"/>
+                                    <ComboBoxItem Content="Near mouse"/>
                                 </ComboBox>
                             </Grid>
                             <Border Height="1" Background="{DynamicResource ThemeSeparatorBrush}" Margin="0,10,0,10"/>
@@ -1522,20 +1523,6 @@
                                      TextChanged="CustomHeadersBox_Changed"/>
                         </StackPanel>
                     </controls:ProviderSection>
-
-                    <TextBlock Text="Auto-upload" Style="{StaticResource SectionLabel}" Margin="4,16,0,6"/>
-
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <CheckBox x:Name="AutoUploadScreenshotsCheck" Content="Auto-upload screenshots" FontSize="13"
-                                      ToolTip="Uploads after every capture"
-                                      Checked="AutoUploadScreenshotsCheck_Changed" Unchecked="AutoUploadScreenshotsCheck_Changed"/>
-                            <CheckBox x:Name="AutoUploadGifsCheck" Content="Auto-upload GIFs" FontSize="13" Margin="0,6,0,0"
-                                      Checked="AutoUploadGifsCheck_Changed" Unchecked="AutoUploadGifsCheck_Changed"/>
-                            <CheckBox x:Name="AutoUploadVideosCheck" Content="Auto-upload videos" FontSize="13" Margin="0,6,0,0"
-                                      Checked="AutoUploadVideosCheck_Changed" Unchecked="AutoUploadVideosCheck_Changed"/>
-                        </StackPanel>
-                    </Border>
 
                     <!-- Test upload -->
                     <Border Style="{StaticResource Card}" Margin="0,14,0,0" x:Name="TestUploadCard" Visibility="Collapsed">

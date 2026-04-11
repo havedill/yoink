@@ -19,6 +19,7 @@ internal sealed record ToastSpec
     public bool AutoPin { get; init; }
     public bool TransparentShell { get; init; }
     public bool ShowOverlayButtons { get; init; }
+    public bool ShowUploadButton { get; init; }
     public Stretch PreviewStretch { get; init; } = Stretch.Uniform;
     public Thickness PreviewMargin { get; init; }
     public double? PreviewMaxHeight { get; init; }
@@ -65,7 +66,8 @@ internal sealed record ToastSpec
         string? filePath,
         bool autoPin,
         bool transparentShell,
-        bool showOverlayButtons) => new()
+        bool showOverlayButtons,
+        bool showUploadButton = false) => new()
     {
         Title = title,
         Body = body,
@@ -73,7 +75,8 @@ internal sealed record ToastSpec
         FilePath = filePath,
         AutoPin = autoPin,
         TransparentShell = transparentShell,
-        ShowOverlayButtons = showOverlayButtons
+        ShowOverlayButtons = showOverlayButtons,
+        ShowUploadButton = showUploadButton
     };
 
     public static ToastSpec Sticker(Bitmap sticker) => new()

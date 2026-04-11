@@ -77,6 +77,20 @@
                           Fill="White" Stretch="Uniform" Width="10" Height="10" Opacity="0.9"
                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
+                <Border x:Name="UploadBtn" Height="30" CornerRadius="15"
+                        Background="#E60B0D10" BorderBrush="#66FFFFFF" BorderThickness="1"
+                        Cursor="Hand"
+                        HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                        Margin="8,0,0,8" Padding="12,0" Opacity="0" Visibility="Collapsed"
+                        ToolTip="Upload to configured destination">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="M19.35,10.04A7.49,7.49 0 0,0 12,4C9.11,4 6.6,5.64 5.35,8.04A5.994,5.994 0 0,0 0,14A6,6 0 0,0 6,20H19A5,5 0 0,0 24,15C24,12.36 21.95,10.22 19.35,10.04M14,13V17H10V13H7L12,8L17,13H14Z"
+                              Fill="White" Stretch="Uniform" Width="14" Height="14"
+                              VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Upload" Foreground="White" FontSize="11.5" FontWeight="SemiBold"
+                                   FontFamily="Segoe UI Variable Text" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
             </Grid>
 
             <!-- Text content -->

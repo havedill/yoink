@@ -67,7 +67,8 @@ public enum CaptureDockSide
     Top,
     Bottom,
     Left,
-    Right
+    Right,
+    NearMouse
 }
 
 [Flags]
@@ -138,7 +139,7 @@ public sealed class AppSettings
     public bool AutoCheckForUpdates { get; set; } = true;
     public CaptureMode LastCaptureMode { get; set; } = CaptureMode.Rectangle;
     public WindowDetectionMode WindowDetection { get; set; } = WindowDetectionMode.WindowOnly;
-    public CaptureDockSide CaptureDockSide { get; set; } = CaptureDockSide.Top;
+    public CaptureDockSide CaptureDockSide { get; set; } = CaptureDockSide.NearMouse;
     public int CaptureDelaySeconds { get; set; }
     public bool SaveHistory { get; set; } = true;
     public bool MuteSounds { get; set; }
@@ -160,9 +161,6 @@ public sealed class AppSettings
     public bool AutoIndexImages { get; set; } = true;
 
     // Upload settings
-    public bool AutoUploadScreenshots { get; set; } = true;
-    public bool AutoUploadGifs { get; set; }
-    public bool AutoUploadVideos { get; set; }
     public Services.UploadDestination ImageUploadDestination { get; set; } = Services.UploadDestination.None;
     public Services.UploadSettings ImageUploadSettings { get; set; } = new();
     public Services.StickerSettings StickerUploadSettings { get; set; } = new();

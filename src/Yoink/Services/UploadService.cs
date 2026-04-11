@@ -225,7 +225,11 @@ public static partial class UploadService
     public static bool HasCredentials(UploadDestination dest, UploadSettings settings) => dest switch
     {
         UploadDestination.None => false,
-        UploadDestination.Imgur => !string.IsNullOrWhiteSpace(settings.ImgurClientId),
+        // Imgur has a built-in fallback Client-ID for anonymous uploads
+        // (see UploadImgur in UploadService.PublicHosts.cs). Anonymous Imgur
+        // uploads are rate-limited per-app (~1,250/day) rather than per-user,
+        // so a user-supplied ClientId is optional.
+        UploadDestination.Imgur => true,
         UploadDestination.ImgBB => !string.IsNullOrWhiteSpace(settings.ImgBBApiKey),
         UploadDestination.Gyazo => !string.IsNullOrWhiteSpace(settings.GyazoAccessToken),
         UploadDestination.Dropbox => !string.IsNullOrWhiteSpace(settings.DropboxAccessToken),

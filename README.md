@@ -49,10 +49,19 @@ This fork is based on [jasperdevs/yoink](https://github.com/jasperdevs/yoink) v0
 The Windows `RegisterHotKey()` API cannot intercept the Print Screen key because the OS handles it at a lower level. This fork adds a low-level keyboard hook (`WH_KEYBOARD_LL`) that catches Print Screen before Windows processes it, so it can be used as a capture hotkey.
 
 ### Capture overlay UX improvements
-- **Toolbar appears near the cursor** -- The annotation toolbar now spawns ~150px to the top-right of where the cursor was when capture was triggered, instead of docking to a screen edge. Cursor position is captured on the main thread at hotkey press to avoid race conditions on multi-monitor setups.
+- **"Near mouse" toolbar dock position** -- Added alongside the existing Top/Bottom/Left/Right options in Settings → Capture dock. When selected (now the default), the annotation toolbar spawns ~150px to the top-right of where the cursor was when capture was triggered, instead of docking to a screen edge. Cursor position is captured on the main thread at hotkey press to avoid race conditions on multi-monitor setups. Users who prefer a fixed dock can still pick Top/Bottom/Left/Right.
 - **Annotation tools flyout opens by default** -- The "more tools" flyout (arrow, text, blur, draw, etc.) opens automatically when the capture overlay appears, so tools are immediately accessible without clicking the "..." button.
 - **Smarter Escape key behavior** -- Escape now follows a priority chain: (1) cancel an active operation (mid-drag, popup, typing), (2) return to the last capture tool if currently using an annotation tool, (3) close the overlay. In rectangle/freeform select mode, Escape exits the overlay in a single press instead of requiring two.
 - **Keyboard focus fix** -- The overlay re-acquires keyboard focus after toolbar creation, fixing an issue where Escape and other keys would not register on the first capture.
+
+### Upload-from-preview button
+The snapshot preview toast now includes an always-visible **Upload** pill button in the lower-left corner. Clicking it kicks off an upload to your configured destination and swaps the preview for a pinned "Uploading to {host}…" status toast, which is then replaced by the usual success toast (URL copied to clipboard) or an error toast. This replaces the removed "auto-upload after capture" option: uploads are now explicit, one-click, and opt-in per capture.
+
+### Auto-upload removed
+The "Auto-upload screenshots / GIFs / videos" settings have been removed entirely. Automatically sending every screenshot to a remote host was too easy to trip over (accidentally shipping sensitive content to Imgur, getting rate-limited silently, etc.). Uploads are now only triggered by the explicit Upload button on the preview toast.
+
+### Imgur anonymous uploads work without a Client-ID
+Imgur ships with a built-in public Client-ID for anonymous uploads (~1,250 uploads/day shared across all Yoink users). Previously the upload flow would refuse to start with "No API key configured" even though the fallback was in place; now selecting Imgur as an upload destination works out-of-the-box without entering a personal Client-ID. Users who want their own rate-limit bucket can still configure one in Settings → Uploads.
 
 ### Auto-update pointed to this fork
 Auto-update checks now point to `havedill/yoink` releases instead of the upstream repository.

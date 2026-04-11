@@ -239,6 +239,7 @@ public partial class ToastWindow : Window
             CloseBtn.Visibility = Visibility.Collapsed;
             PinBtn.Visibility = Visibility.Collapsed;
             SaveBtn.Visibility = Visibility.Collapsed;
+            UploadBtn.Visibility = Visibility.Collapsed;
         }
 
         if (spec.TransparentShell)
@@ -330,6 +331,22 @@ public partial class ToastWindow : Window
             CloseBtn.Visibility = Visibility.Visible;
             PinBtn.Visibility = Visibility.Visible;
             SaveBtn.Visibility = Visibility.Visible;
+            if (spec.ShowUploadButton && !string.IsNullOrEmpty(spec.FilePath))
+            {
+                UploadBtn.Visibility = Visibility.Visible;
+                // Upload is the primary CTA on a preview — keep it always visible,
+                // unlike Close/Pin/Save which fade in on hover.
+                UploadBtn.BeginAnimation(OpacityProperty, null);
+                UploadBtn.Opacity = 1;
+            }
+            else
+            {
+                UploadBtn.Visibility = Visibility.Collapsed;
+            }
+        }
+        else
+        {
+            UploadBtn.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -356,6 +373,7 @@ public partial class ToastWindow : Window
         CloseBtn.MouseLeftButtonDown -= CloseBtn_MouseLeftButtonDown;
         PinBtn.MouseLeftButtonDown -= PinBtn_MouseLeftButtonDown;
         SaveBtn.MouseLeftButtonDown -= SaveBtn_MouseLeftButtonDown;
+        UploadBtn.MouseLeftButtonDown -= UploadBtn_MouseLeftButtonDown;
 
         if (!_spec.ShowOverlayButtons || _previewBitmap is null)
             return;
@@ -363,6 +381,9 @@ public partial class ToastWindow : Window
         CloseBtn.MouseLeftButtonDown += CloseBtn_MouseLeftButtonDown;
         PinBtn.MouseLeftButtonDown += PinBtn_MouseLeftButtonDown;
         SaveBtn.MouseLeftButtonDown += SaveBtn_MouseLeftButtonDown;
+
+        if (_spec.ShowUploadButton && !string.IsNullOrEmpty(_savedFilePath))
+            UploadBtn.MouseLeftButtonDown += UploadBtn_MouseLeftButtonDown;
     }
 
     private void CloseBtn_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -405,6 +426,27 @@ public partial class ToastWindow : Window
         Show(ToastSpec.Standard("Saved", Path.GetFileName(dlg.FileName)));
     }
 
+    private void UploadBtn_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        var path = _savedFilePath;
+        if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            return;
+
+        var handler = UploadRequestHandler;
+        if (handler is null)
+            return;
+
+        // Pin the toast so it doesn't auto-dismiss while the upload kicks off.
+        // UploadFileAsync will immediately call ToastWindow.Show("Uploading to …")
+        // which replaces this toast in-place via TryUpdateInPlace, and the final
+        // "Uploaded" / error toast will replace that one when the upload finishes.
+        ApplyPinnedState(true);
+
+        try { handler.Invoke(path); }
+        catch { }
+    }
+
     private void ApplyPinnedState(bool pinned)
     {
         _isPinned = pinned;
@@ -434,6 +476,8 @@ public partial class ToastWindow : Window
         CloseBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
         SaveBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity, 150, Motion.SmoothOut));
         PinBtn.BeginAnimation(OpacityProperty, Motion.To(targetOpacity == 0 ? pinnedOpacity : targetOpacity, 150, Motion.SmoothOut));
+        // UploadBtn intentionally stays at opacity 1 (see ConfigureImagePreview) —
+        // it's the primary CTA and should remain visible without requiring hover.
     }
 
     private void UpdateRootClip()
@@ -452,7 +496,8 @@ public partial class ToastWindow : Window
     {
         if (IsChildOf(e.OriginalSource as DependencyObject, CloseBtn) ||
             IsChildOf(e.OriginalSource as DependencyObject, PinBtn) ||
-            IsChildOf(e.OriginalSource as DependencyObject, SaveBtn))
+            IsChildOf(e.OriginalSource as DependencyObject, SaveBtn) ||
+            IsChildOf(e.OriginalSource as DependencyObject, UploadBtn))
         {
             return;
         }

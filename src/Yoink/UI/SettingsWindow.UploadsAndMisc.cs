@@ -50,27 +50,6 @@ public partial class SettingsWindow
         TestUploadCard.Visibility = dest != Services.UploadDestination.None ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void AutoUploadScreenshotsCheck_Changed(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        _settingsService.Settings.AutoUploadScreenshots = AutoUploadScreenshotsCheck.IsChecked == true;
-        _settingsService.Save();
-    }
-
-    private void AutoUploadGifsCheck_Changed(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        _settingsService.Settings.AutoUploadGifs = AutoUploadGifsCheck.IsChecked == true;
-        _settingsService.Save();
-    }
-
-    private void AutoUploadVideosCheck_Changed(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        _settingsService.Settings.AutoUploadVideos = AutoUploadVideosCheck.IsChecked == true;
-        _settingsService.Save();
-    }
-
     private void ImgurClientIdBox_Changed(object sender, TextChangedEventArgs e)
     {
         if (!IsLoaded) return;
