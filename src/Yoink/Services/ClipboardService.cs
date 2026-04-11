@@ -22,7 +22,8 @@ public static class ClipboardService
     {
         if (bitmap is null) throw new ArgumentNullException(nameof(bitmap));
 
-        return Task.Run(() =>
+        // Task.Run(Func<Task>) already returns a flattened Task — no Unwrap needed.
+        return Task.Run(async () =>
         {
             // Encode PNG off the UI thread. Rewind the stream and hand it directly to
             // the DataObject — no intermediate byte[] + new MemoryStream copy.
@@ -44,7 +45,7 @@ public static class ClipboardService
             dataObject.SetData("PNG", false, pngStream);
 
             // SetDataObject must run on an STA thread; the WPF dispatcher satisfies this.
-            return System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 try
                 {
@@ -57,8 +58,8 @@ public static class ClipboardService
                     try { System.Windows.Forms.Clipboard.SetDataObject(dataObject, copy: true); }
                     catch { }
                 }
-            }).Task;
-        }).Unwrap();
+            });
+        });
     }
 
     public static void CopyTextToClipboard(string text)
