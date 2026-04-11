@@ -151,9 +151,6 @@ public partial class SettingsWindow
         ToastFadeDurationRow.Visibility = s.ToastFadeOutEnabled ? Visibility.Visible : Visibility.Collapsed;
 
         SelectUploadDestByTag((int)s.ImageUploadDestination);
-        AutoUploadScreenshotsCheck.IsChecked = s.AutoUploadScreenshots;
-        AutoUploadGifsCheck.IsChecked = s.AutoUploadGifs;
-        AutoUploadVideosCheck.IsChecked = s.AutoUploadVideos;
         try { LoadUploadSettingsIntoUi(s.ImageUploadSettings); } catch { }
         try { LoadStickerSettingsIntoUi(s.StickerUploadSettings); } catch { }
         UpdateUploadSettingsVisibility();

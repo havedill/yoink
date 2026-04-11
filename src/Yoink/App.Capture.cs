@@ -74,17 +74,8 @@ public partial class App
                         catch { }
 
                         var settings = _settingsService!.Settings;
-                        bool isGif = string.Equals(Path.GetExtension(path), ".gif", StringComparison.OrdinalIgnoreCase);
-                        bool willUpload = isGif
-                            ? settings.AutoUploadGifs && settings.ImageUploadDestination != UploadDestination.None
-                            : settings.AutoUploadVideos && settings.ImageUploadDestination != UploadDestination.None;
 
-                        if (willUpload)
-                        {
-                            firstFrame?.Dispose();
-                            _ = UploadFileAsync(path, isGif ? "GIF" : "Video", historyEntry);
-                        }
-                        else if (firstFrame != null)
+                        if (firstFrame != null)
                         {
                             bool canUploadRecordingFromToast = !string.IsNullOrEmpty(path)
                                 && settings.ImageUploadDestination != UploadDestination.None;

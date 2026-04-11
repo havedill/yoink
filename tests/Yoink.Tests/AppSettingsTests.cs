@@ -70,10 +70,10 @@ public sealed class AppSettingsTests
     }
 
     [Fact]
-    public void CaptureDockSide_DefaultsToTop()
+    public void CaptureDockSide_DefaultsToNearMouse()
     {
         var settings = new AppSettings();
 
-        Assert.Equal(CaptureDockSide.Top, settings.CaptureDockSide);
+        Assert.Equal(CaptureDockSide.NearMouse, settings.CaptureDockSide);
     }
 }

@@ -60,9 +60,6 @@ public partial class App
                 {
                     var action = NormalizeAfterCaptureAction(settings.AfterCapture);
                     bool willPreview = ShouldPreviewAfterCapture(action);
-                    bool willUpload = persisted.FilePath != null
-                        && settings.AutoUploadScreenshots
-                        && settings.ImageUploadDestination != UploadDestination.None;
                     bool canUploadFromToast = persisted.FilePath != null
                         && settings.ImageUploadDestination != UploadDestination.None;
 
@@ -72,29 +69,23 @@ public partial class App
                     // dispatcher) BEFORE starting the background PNG encode. This keeps
                     // reads of the GDI+ bitmap serialized — the preview's ToBitmapSource
                     // call finishes before the clipboard task's Bitmap.Save begins.
-                    if (willPreview && !willUpload)
+                    if (willPreview)
                         ToastWindow.ShowImagePreview(persisted.Output, persisted.FilePath, settings.AutoPinPreviews, canUploadFromToast);
 
                     Task copyTask = Task.CompletedTask;
                     if (ShouldCopyAfterCapture(action))
                         copyTask = ClipboardService.CopyToClipboardAsync(persisted.Output);
 
-                    if (willUpload)
-                    {
-                        // Wait for the clipboard encode to finish before disposing the bitmap.
-                        try { await copyTask; } catch { }
-                        persisted.Output.Dispose();
-                        _ = UploadFileAsync(persisted.FilePath!, "Screenshot", persisted.HistoryEntry);
-                    }
-                    else if (!willPreview)
+                    if (!willPreview)
                     {
                         try { await copyTask; } catch { }
                         persisted.Output.Dispose();
                         ToastWindow.Show("Screenshot ready", "", persisted.FilePath);
                     }
-                    // willPreview && !willUpload: the preview window retains the bitmap
-                    // via ToastWindow._previewBitmap, so the clipboard task can finish in
-                    // the background without an explicit await.
+                    // willPreview: the preview window retains the bitmap via
+                    // ToastWindow._previewBitmap, so the clipboard task can finish in
+                    // the background without an explicit await. The user can click the
+                    // preview's Upload button to upload on demand.
 
                     ScheduleIdleMemoryTrim();
                 });
@@ -141,10 +132,7 @@ public partial class App
                     var action = NormalizeAfterCaptureAction(settings.AfterCapture);
                     bool willPreview = ShouldPreviewAfterCapture(action);
                     bool willCopy = ShouldCopyAfterCapture(action);
-                    bool willAutoUploadSticker = persisted.FilePath != null && settings.AutoUploadScreenshots
-                        && settings.ImageUploadDestination != UploadDestination.None;
-                    bool canUploadStickerFromToast = !willAutoUploadSticker
-                        && persisted.FilePath != null
+                    bool canUploadStickerFromToast = persisted.FilePath != null
                         && settings.ImageUploadDestination != UploadDestination.None;
 
                     _isCapturing = false;
@@ -167,11 +155,6 @@ public partial class App
                     }
                     // willPreview: the preview window retains the bitmap for the lifetime
                     // of the clipboard encode task.
-
-                    if (willAutoUploadSticker)
-                    {
-                        _ = UploadFileAsync(persisted.FilePath!, "Sticker", persisted.HistoryEntry);
-                    }
 
                     ScheduleIdleMemoryTrim();
                 });

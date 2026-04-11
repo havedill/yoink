@@ -41,9 +41,12 @@ public sealed partial class RegionOverlayForm
 
     private bool IsVerticalDock => CaptureDockSide is CaptureDockSide.Left or CaptureDockSide.Right;
     private bool IsBottomDock => CaptureDockSide == CaptureDockSide.Bottom;
-    private bool IsTopDock => CaptureDockSide == CaptureDockSide.Top;
+    // NearMouse is positioned free-floating near the cursor but uses the same
+    // horizontal orientation and flyout-below-toolbar layout as the Top dock.
+    private bool IsTopDock => CaptureDockSide is CaptureDockSide.Top or CaptureDockSide.NearMouse;
     private bool IsLeftDock => CaptureDockSide == CaptureDockSide.Left;
     private bool IsRightDock => CaptureDockSide == CaptureDockSide.Right;
+    private bool IsNearMouseDock => CaptureDockSide == CaptureDockSide.NearMouse;
 
     public void SetEnabledTools(List<string>? enabledIds)
     {
