@@ -271,6 +271,8 @@ public partial class SettingsWindow
             _historyTopSpacer.Height = 0;
             _historyBottomSpacer.Height = 0;
             _historyItems.Clear();
+            _virtualizedHistoryStartIndex = -1;
+            _virtualizedHistoryEndIndex = -1;
             return;
         }
 
@@ -290,22 +292,68 @@ public partial class SettingsWindow
         if (startIndex == _virtualizedHistoryStartIndex && endIndex == _virtualizedHistoryEndIndex)
             return;
 
-        _virtualizedHistoryStartIndex = startIndex;
-        _virtualizedHistoryEndIndex = endIndex;
         _historyTopSpacer.Height = startRow * HistoryVirtualRowHeight;
         _historyBottomSpacer.Height = Math.Max(0, (totalRows - endRowExclusive) * HistoryVirtualRowHeight);
 
-        var visibleItems = _filteredHistoryItems.Skip(startIndex).Take(endIndex - startIndex).ToList();
-        _historyItems = visibleItems;
-        _historyVirtualizedPanel.Children.Clear();
-        foreach (var item in visibleItems)
-            _historyVirtualizedPanel.Children.Add(GetOrCreateHistoryCard(item));
+        // Diff-update the visible children instead of Children.Clear() + full re-add.
+        // This keeps existing card visuals in place when the scroll delta is small,
+        // avoiding the GC + layout cost of rebuilding every row on every scroll tick.
+        var oldStart = _virtualizedHistoryStartIndex;
+        var oldEnd = _virtualizedHistoryEndIndex;
+        var children = _historyVirtualizedPanel.Children;
+        bool disjoint = oldStart < 0 || oldEnd <= startIndex || endIndex <= oldStart;
+        if (disjoint)
+        {
+            children.Clear();
+            for (int i = startIndex; i < endIndex; i++)
+                children.Add(GetOrCreateHistoryCard(_filteredHistoryItems[i]));
+        }
+        else
+        {
+            int leadingRemove = startIndex - oldStart;
+            for (int i = 0; i < leadingRemove; i++)
+                children.RemoveAt(0);
 
-        var prefetchItems = visibleItems
-            .Concat(_filteredHistoryItems.Skip(endIndex).Take(columns * HistoryPrefetchRowBuffer))
-            .DistinctBy(item => item.Entry.FilePath)
-            .ToList();
-        PrimeHistoryThumbnailLoads(prefetchItems);
+            int trailingRemove = oldEnd - endIndex;
+            for (int i = 0; i < trailingRemove; i++)
+                children.RemoveAt(children.Count - 1);
+
+            if (startIndex < oldStart)
+            {
+                for (int i = (oldStart - startIndex) - 1; i >= 0; i--)
+                    children.Insert(0, GetOrCreateHistoryCard(_filteredHistoryItems[startIndex + i]));
+            }
+
+            if (oldEnd < endIndex)
+            {
+                for (int i = oldEnd; i < endIndex; i++)
+                    children.Add(GetOrCreateHistoryCard(_filteredHistoryItems[i]));
+            }
+        }
+
+        _virtualizedHistoryStartIndex = startIndex;
+        _virtualizedHistoryEndIndex = endIndex;
+
+        // Rebuild the bookkeeping list in place — no intermediate Skip/Take/ToList allocation.
+        _historyItems.Clear();
+        int visibleCount = endIndex - startIndex;
+        if (_historyItems.Capacity < visibleCount)
+            _historyItems.Capacity = visibleCount;
+        for (int i = startIndex; i < endIndex; i++)
+            _historyItems.Add(_filteredHistoryItems[i]);
+
+        // Prefetch thumbnails for the visible window plus a small look-ahead buffer.
+        // Iterating once from startIndex..prefetchEnd produces no duplicates and no LINQ allocs.
+        int prefetchEnd = Math.Min(totalCount, endIndex + columns * HistoryPrefetchRowBuffer);
+        int queued = 0;
+        for (int i = startIndex; i < prefetchEnd && queued < HistoryPrefetchLimit; i++)
+        {
+            var item = _filteredHistoryItems[i];
+            if (item.ThumbnailLoaded && item.ThumbnailSource != null)
+                continue;
+            queued++;
+            PrimeThumbLoad(item);
+        }
     }
 
     private static void PrimeHistoryThumbnailLoads(IEnumerable<HistoryItemVM> items)
@@ -334,10 +382,33 @@ public partial class SettingsWindow
                 ToastWindow.Show("Copied", vm.Entry.UploadUrl);
                 return;
             }
-            if (!File.Exists(vm.Entry.FilePath)) return;
-            using var bmp = new Bitmap(vm.Entry.FilePath);
-            Services.ClipboardService.CopyToClipboard(bmp);
-            ToastWindow.Show("Copied", $"{vm.Dimensions} screenshot copied");
+            var path = vm.Entry.FilePath;
+            var dims = vm.Dimensions;
+            if (!File.Exists(path)) return;
+
+            // Load the bitmap from disk AND encode it to the clipboard on a background
+            // thread so the card click is not blocked by multi-hundred-ms work.
+            _ = Task.Run(async () =>
+            {
+                Bitmap? bmp = null;
+                try
+                {
+                    bmp = new Bitmap(path);
+                    await Services.ClipboardService.CopyToClipboardAsync(bmp);
+                }
+                catch (Exception ex)
+                {
+                    var message = ex.Message;
+                    await Dispatcher.InvokeAsync(() => ToastWindow.ShowError("Copy failed", message));
+                    return;
+                }
+                finally
+                {
+                    bmp?.Dispose();
+                }
+
+                await Dispatcher.InvokeAsync(() => ToastWindow.Show("Copied", $"{dims} screenshot copied"));
+            });
         });
 
         if (!string.IsNullOrEmpty(vm.Entry.UploadProvider))

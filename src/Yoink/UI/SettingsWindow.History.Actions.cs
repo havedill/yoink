@@ -250,8 +250,9 @@ public partial class SettingsWindow
         if (_historyRenderCount >= _filteredHistoryItems.Count) return;
         var previousCount = _historyRenderCount;
         _historyRenderCount = Math.Min(_historyRenderCount + HistoryPageSize, _filteredHistoryItems.Count);
-        var appended = _filteredHistoryItems.Skip(previousCount).Take(_historyRenderCount - previousCount).ToList();
-        _historyItems.AddRange(appended);
-        AppendGroupedHistoryItems(HistoryStack, appended, CreateHistoryCard);
+        int appendedCount = _historyRenderCount - previousCount;
+        for (int i = 0; i < appendedCount; i++)
+            _historyItems.Add(_filteredHistoryItems[previousCount + i]);
+        AppendGroupedHistoryItems(HistoryStack, _historyItems.GetRange(previousCount, appendedCount), CreateHistoryCard);
     }
 }

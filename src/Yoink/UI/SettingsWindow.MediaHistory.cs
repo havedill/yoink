@@ -131,9 +131,10 @@ public partial class SettingsWindow
         if (_gifRenderCount >= _allGifItems.Count) return;
         var previousCount = _gifRenderCount;
         _gifRenderCount = Math.Min(_gifRenderCount + HistoryPageSize, _allGifItems.Count);
-        var appended = _allGifItems.Skip(previousCount).Take(_gifRenderCount - previousCount).ToList();
-        _gifItems.AddRange(appended);
-        AppendGroupedHistoryItems(GifStack, appended, CreateMediaCard);
+        int appendedCount = _gifRenderCount - previousCount;
+        for (int i = 0; i < appendedCount; i++)
+            _gifItems.Add(_allGifItems[previousCount + i]);
+        AppendGroupedHistoryItems(GifStack, _gifItems.GetRange(previousCount, appendedCount), CreateMediaCard);
         PrimeHistoryThumbnailLoads(_allGifItems.Take(Math.Min(_gifRenderCount + 12, _allGifItems.Count)));
     }
 
