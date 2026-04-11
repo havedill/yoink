@@ -95,10 +95,12 @@ public static class LocalStickerEngineService
         }
     }
 
-    public static Bitmap Process(Bitmap input, LocalStickerEngine engine, StickerExecutionProvider executionProvider)
-    {
-        return RembgRuntimeService.RemoveBackgroundAsync(input, engine, executionProvider).GetAwaiter().GetResult();
-    }
+    public static Task<Bitmap> ProcessAsync(
+        Bitmap input,
+        LocalStickerEngine engine,
+        StickerExecutionProvider executionProvider,
+        CancellationToken cancellationToken = default)
+        => RembgRuntimeService.RemoveBackgroundAsync(input, engine, executionProvider, cancellationToken);
 
     public static Bitmap ApplyPresentationEffects(Bitmap source, bool addStroke, bool addShadow)
     {

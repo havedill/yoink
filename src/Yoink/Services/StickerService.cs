@@ -171,7 +171,9 @@ public static class StickerService
     {
         try
         {
-            using var processed = await Task.Run(() => LocalStickerEngineService.Process(input, engine, executionProvider));
+            using var processed = await LocalStickerEngineService
+                .ProcessAsync(input, engine, executionProvider)
+                .ConfigureAwait(false);
             using var finished = LocalStickerEngineService.ApplyPresentationEffects(processed, settings.AddStroke, settings.AddShadow);
             return new StickerResult
             {
