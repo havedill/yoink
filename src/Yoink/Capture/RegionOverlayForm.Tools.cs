@@ -29,6 +29,83 @@ public sealed partial class RegionOverlayForm
     }
 
     /// <summary>
+    /// Rectangle-mode: lock in the selected rect and enter the annotation phase.
+    /// Annotation tools become available via the flyout and selection is no longer editable.
+    /// </summary>
+    private void CommitSelection(Rectangle rect)
+    {
+        if (rect.Width < 2 || rect.Height < 2)
+            return;
+
+        _selectionRect = rect;
+        _hasSelection = true;
+        _isSelecting = false;
+        _hasDragged = false;
+        _selectionCommitted = true;
+        _committedIsFreeform = false;
+        _autoDetectActive = false;
+        _autoDetectRect = Rectangle.Empty;
+
+        // Switch to the annotation Select tool as the default entry point and open the flyout.
+        SetMode(CaptureMode.Select);
+        SetFlyoutOpen(true);
+        EnsureToolbarReady();
+        RefreshToolbar();
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Freeform-mode: lock in the polygon selection and enter the annotation phase.
+    /// </summary>
+    private void CommitFreeformSelection()
+    {
+        if (_freeformPoints.Count < 3)
+            return;
+
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+        foreach (var p in _freeformPoints)
+        { minX = Math.Min(minX, p.X); minY = Math.Min(minY, p.Y); maxX = Math.Max(maxX, p.X); maxY = Math.Max(maxY, p.Y); }
+        var bb = new Rectangle(minX, minY, maxX - minX, maxY - minY);
+        if (bb.Width < 3 || bb.Height < 3)
+            return;
+
+        _selectionRect = bb;
+        _hasSelection = true;
+        _isSelecting = false;
+        _hasDragged = false;
+        _selectionCommitted = true;
+        _committedIsFreeform = true;
+
+        SetMode(CaptureMode.Select);
+        SetFlyoutOpen(true);
+        EnsureToolbarReady();
+        RefreshToolbar();
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Annotation phase: bake annotations onto the screenshot and fire the appropriate
+    /// completion event. This is invoked by Enter key or the toolbar Done button.
+    /// </summary>
+    private void ConfirmCapture()
+    {
+        if (!_selectionCommitted || !_hasSelection)
+            return;
+
+        // Commit any in-progress text before baking annotations.
+        if (_isTyping)
+            CommitText();
+
+        if (_committedIsFreeform)
+        {
+            CompleteFreeform();
+            return;
+        }
+
+        RegionSelected?.Invoke(_selectionRect);
+    }
+
+    /// <summary>
     /// Renders the screenshot with all annotations in creation order (Excalidraw style).
     /// </summary>
     public Bitmap RenderAnnotatedBitmap()

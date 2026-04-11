@@ -346,6 +346,11 @@ public sealed partial class RegionOverlayForm
             DrawFreeformSelectIcon(g, b, c, active);
             return;
         }
+        if (icon == "done")
+        {
+            DrawDoneIcon(g, b, c, active);
+            return;
+        }
         if (icon == "sticker")
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -417,6 +422,31 @@ public sealed partial class RegionOverlayForm
 
         g.DrawLine(pen, right - arm, bottom, right, bottom);
         g.DrawLine(pen, right, bottom - arm, right, bottom);
+        g.SmoothingMode = SmoothingMode.Default;
+    }
+
+    private static void DrawDoneIcon(Graphics g, Rectangle b, Color c, bool active = false)
+    {
+        // Draw a check mark centered in the button. Use a slightly greener tint when active
+        // so it reads as the "confirm" affordance.
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var accent = active
+            ? Color.FromArgb(c.A, 80, 220, 120)
+            : Color.FromArgb((int)(c.A * 0.95f), 100, 220, 140);
+        using var pen = new Pen(accent, active ? 2.4f : 2.1f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+
+        float cx = b.X + b.Width / 2f;
+        float cy = b.Y + b.Height / 2f;
+        float size = active ? 14f : 13f;
+        var p1 = new PointF(cx - size * 0.5f, cy + size * 0.05f);
+        var p2 = new PointF(cx - size * 0.12f, cy + size * 0.38f);
+        var p3 = new PointF(cx + size * 0.5f, cy - size * 0.35f);
+        g.DrawLines(pen, new[] { p1, p2, p3 });
         g.SmoothingMode = SmoothingMode.Default;
     }
 

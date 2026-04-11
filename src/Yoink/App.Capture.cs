@@ -407,7 +407,9 @@ public partial class App
 
                 overlay.FormClosed += (_, _) =>
                 {
-                    var mode = overlay.CurrentMode;
+                    // Track the capture tool the user actually chose, not the annotation
+                    // tool that the two-phase workflow may have switched to after commit.
+                    var mode = overlay.LastCaptureMode;
                     if (mode is CaptureMode.Rectangle or CaptureMode.Freeform)
                     {
                         Dispatcher.BeginInvoke(() =>

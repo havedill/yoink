@@ -27,13 +27,24 @@ public sealed partial class RegionOverlayForm : Form
     private bool _hasSelection;
     private bool _hasDragged;
 
+    // Two-phase capture workflow: the user first makes a selection (capture tools only),
+    // then after commit annotates within the locked selection before confirming.
+    private bool _selectionCommitted;
+    // True when the committed selection is a freeform polygon (points in _freeformPoints).
+    private bool _committedIsFreeform;
+
     private readonly List<Point> _freeformPoints = new();
 
     // Dynamic toolbar built from enabled tools + fixed buttons (color, close)
     private ToolDef[] _visibleTools = ToolDef.AllTools;
     private ToolDef[] _mainBarTools = Array.Empty<ToolDef>();
     private ToolDef[] _flyoutTools = Array.Empty<ToolDef>();
-    private int BtnCount => _mainBarTools.Length + (_flyoutTools.Length > 0 ? 1 : 0) + 2; // +more +color +close
+    // Done button only appears during the annotation phase (after a selection has been committed).
+    private bool HasDoneButton => _selectionCommitted;
+    private int BtnCount => _mainBarTools.Length
+                            + (_flyoutTools.Length > 0 ? 1 : 0)
+                            + (HasDoneButton ? 1 : 0)
+                            + 2; // +more +done? +color +close
     private int _moreButtonIndex = -1; // index of "..." button in _toolbarButtons
     private Rectangle[] _toolbarButtons = Array.Empty<Rectangle>();
     private string[] _toolbarIcons = Array.Empty<string>();
@@ -467,6 +478,13 @@ public sealed partial class RegionOverlayForm : Form
         else
         {
             _moreButtonIndex = -1;
+        }
+        if (HasDoneButton)
+        {
+            _toolbarIcons[idx] = "done";
+            _toolbarLabels[idx] = "Done (Enter)";
+            _toolbarModes[idx] = null;
+            idx++;
         }
         _toolbarIcons[idx] = "color";
         _toolbarLabels[idx] = "Color";

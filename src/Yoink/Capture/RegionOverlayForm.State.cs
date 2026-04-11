@@ -13,6 +13,13 @@ public sealed partial class RegionOverlayForm
 {
     public CaptureMode CurrentMode => _mode;
 
+    /// <summary>
+    /// The most recent capture-tool mode (Rectangle/Freeform/etc.) used this session.
+    /// Stays stable through annotation-phase mode switches so FormClosed can persist the user's
+    /// preferred capture mode even after the overlay has transitioned into annotation mode.
+    /// </summary>
+    public CaptureMode LastCaptureMode => _lastCaptureMode;
+
     public void SetShowToolNumberBadges(bool show)
     {
         _showToolNumberBadges = show;

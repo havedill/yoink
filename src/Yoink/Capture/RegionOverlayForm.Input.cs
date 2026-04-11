@@ -29,6 +29,11 @@ public sealed partial class RegionOverlayForm
         {
             if (btn == BtnCount - 1) { Cancel(); return; }     // close
             if (btn == BtnCount - 2) { ToggleColorPicker(); return; } // color dot
+            if (HasDoneButton && btn == BtnCount - 3)
+            {
+                ConfirmCapture();
+                return;
+            }
             if (_moreButtonIndex >= 0 && btn == _moreButtonIndex)
             {
                 SetFlyoutOpen(!_flyoutOpen);

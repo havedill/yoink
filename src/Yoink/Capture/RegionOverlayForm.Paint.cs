@@ -89,7 +89,7 @@ public sealed partial class RegionOverlayForm
             }
             _lastAutoDetectRect = _autoDetectRect;
         }
-        else if (isSelectionMode && !_hasSelection && !_isSelecting)
+        else if (isSelectionMode && !_hasSelection && !_isSelecting && !_selectionCommitted)
         {
             // Full-screen fallback border: use dashed pattern to match auto-detect style
             g.DrawRectangle(DashedPen(120), 2, 2, ClientSize.Width - 5, ClientSize.Height - 5);
@@ -118,6 +118,27 @@ public sealed partial class RegionOverlayForm
             case CaptureMode.Freeform when _freeformPoints.Count >= 2:
                 DrawFreeformSelectionPreview(g, _freeformPoints);
                 break;
+        }
+
+        // In the annotation phase, keep the committed selection border visible regardless of
+        // the current annotation tool so the user can see what region they're editing.
+        if (_selectionCommitted && _hasSelection)
+        {
+            if (_committedIsFreeform && _freeformPoints.Count >= 2)
+            {
+                DrawFreeformSelectionPreview(g, _freeformPoints);
+            }
+            else if (_mode != CaptureMode.Rectangle
+                  && _mode != CaptureMode.Ocr
+                  && _mode != CaptureMode.Scan
+                  && _mode != CaptureMode.Sticker)
+            {
+                var sr = _selectionRect;
+                sr.Inflate(1, 1);
+                g.DrawRectangle(ShadowPen(40), sr);
+                g.DrawRectangle(DashedPen(255), _selectionRect);
+                _lastSelectionRect = _selectionRect;
+            }
         }
 
         if (!_hasSelection)

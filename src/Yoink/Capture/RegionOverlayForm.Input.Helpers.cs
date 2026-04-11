@@ -60,6 +60,14 @@ public sealed partial class RegionOverlayForm
 
     private void SetMode(CaptureMode m)
     {
+        // Two-phase workflow:
+        //   Pre-commit: only capture tools are allowed (annotation tools blocked).
+        //   Post-commit: only annotation tools are allowed (capture tools blocked).
+        if (!_selectionCommitted && ToolDef.IsAnnotationTool(m))
+            return;
+        if (_selectionCommitted && ToolDef.IsCaptureTool(m))
+            return;
+
         if (ToolDef.IsCaptureTool(m))
             _lastCaptureMode = m;
 
@@ -69,9 +77,14 @@ public sealed partial class RegionOverlayForm
         HideFontSearchBox();
         _emojiHovered = -1;
         _mode = m;
-        _hasSelection = false;
+        // Preserve the committed selection when switching between annotation tools.
+        // Only clear it when we're still in the pre-commit selection phase.
+        if (!_selectionCommitted)
+        {
+            _hasSelection = false;
+            _freeformPoints.Clear();
+        }
         _hasDragged = false;
-        _freeformPoints.Clear();
         _isSelecting = false;
         _isBlurring = false;
         _isHighlighting = false;

@@ -34,14 +34,12 @@ public sealed partial class RegionOverlayForm
         Focus();
         EnsureToolbarReady();
 
-        // Open the flyout (annotation tools) by default for quick access
-        if (_flyoutTools.Length > 0)
-        {
-            _flyoutOpen = true;
-            _flyoutAnim = 1f;
-            _flyoutAnimTarget = 1f;
-            RefreshToolbar();
-        }
+        // Annotation tools are gated behind committing a selection first.
+        // The flyout stays closed until CommitSelection() opens it.
+        _flyoutOpen = false;
+        _flyoutAnim = 0f;
+        _flyoutAnimTarget = 0f;
+        RefreshToolbar();
 
         // Re-acquire keyboard focus after toolbar creation to ensure
         // key events (e.g. Escape) are received immediately on open

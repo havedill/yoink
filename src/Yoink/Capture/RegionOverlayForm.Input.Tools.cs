@@ -489,6 +489,7 @@ public sealed partial class RegionOverlayForm
                 bool isOcr = _mode == CaptureMode.Ocr;
                 bool isScan = _mode == CaptureMode.Scan;
                 bool isSticker = _mode == CaptureMode.Sticker;
+                bool isRect = _mode == CaptureMode.Rectangle;
                 if (!_hasDragged)
                 {
                     if (_windowDetectionMode != WindowDetectionMode.Off)
@@ -511,6 +512,7 @@ public sealed partial class RegionOverlayForm
                     if (isOcr) OcrRegionSelected?.Invoke(clickRect);
                     else if (isScan) ScanRegionSelected?.Invoke(clickRect);
                     else if (isSticker) StickerRegionSelected?.Invoke(clickRect);
+                    else if (isRect) CommitSelection(clickRect);
                     else RegionSelected?.Invoke(clickRect);
                 }
                 else if (_selectionRect.Width > 2 && _selectionRect.Height > 2)
@@ -518,6 +520,7 @@ public sealed partial class RegionOverlayForm
                     if (isOcr) OcrRegionSelected?.Invoke(_selectionRect);
                     else if (isScan) ScanRegionSelected?.Invoke(_selectionRect);
                     else if (isSticker) StickerRegionSelected?.Invoke(_selectionRect);
+                    else if (isRect) CommitSelection(_selectionRect);
                     else RegionSelected?.Invoke(_selectionRect);
                 }
                 else { _hasSelection = false; Invalidate(); }
@@ -525,8 +528,15 @@ public sealed partial class RegionOverlayForm
             case CaptureMode.Freeform when _isSelecting:
                 _isSelecting = false;
                 if (!_hasDragged)
-                    RegionSelected?.Invoke(new Rectangle(0, 0, _screenshot.Width, _screenshot.Height));
-                else if (_freeformPoints.Count > 2) CompleteFreeform();
+                {
+                    // Zero-area click in Freeform: fall back to a fullscreen rectangle commit
+                    // so the user still enters the annotation phase.
+                    CommitSelection(new Rectangle(0, 0, _screenshot.Width, _screenshot.Height));
+                }
+                else if (_freeformPoints.Count > 2)
+                {
+                    CommitFreeformSelection();
+                }
                 break;
         }
     }
