@@ -193,15 +193,38 @@ public sealed partial class RegionOverlayForm
         return new Rectangle(x - 8, y - 8, size + 16, size + 16);
     }
 
-    private Rectangle GetColorPickerBounds()
+    /// <summary>Popup size for the annotation color swatch strip (must match paint).</summary>
+    private static void GetColorPickerPopupMetrics(out int pw, out int ph)
     {
-        int cols = 6, rows = 1, swatchSize = 28, pad = 4;
-        int pw = cols * (swatchSize + pad) + pad;
-        int ph = rows * (swatchSize + pad) + pad;
-        int colorBtnIdx = BtnCount - 3;
+        const int cols = 6, rows = 1, swatchSize = 28, pad = 4;
+        pw = cols * (swatchSize + pad) + pad;
+        ph = rows * (swatchSize + pad) + pad;
+    }
+
+    /// <summary>
+    /// Places the color strip directly under the "more tools" flyout when present so swatches
+    /// are not stacked over the main toolbar (clicks were hitting tools below).
+    /// </summary>
+    private Rectangle LayoutColorPickerRect()
+    {
+        GetColorPickerPopupMetrics(out int pw, out int ph);
+        const int gap = 8;
+
+        if (_flyoutTools.Length > 0 && _moreButtonIndex >= 0)
+        {
+            int x = _flyoutRect.X + (_flyoutRect.Width - pw) / 2;
+            int y = _flyoutRect.Bottom + gap;
+            x = Math.Clamp(x, gap, Math.Max(gap, ClientSize.Width - pw - gap));
+            y = Math.Clamp(y, gap, Math.Max(gap, ClientSize.Height - ph - gap));
+            return new Rectangle(x, y, pw, ph);
+        }
+
+        int colorBtnIdx = BtnCount - 2;
         var colorBtn = _toolbarButtons.Length > colorBtnIdx ? _toolbarButtons[colorBtnIdx] : Rectangle.Empty;
         return PositionPopupFromAnchor(colorBtn, pw, ph);
     }
+
+    private Rectangle GetColorPickerBounds() => LayoutColorPickerRect();
 
     private Rectangle GetEmojiPickerBounds()
     {

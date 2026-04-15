@@ -576,6 +576,13 @@ public sealed partial class RegionOverlayForm : Form
                 ? UiChrome.ToolbarButtonSize * _flyoutTools.Length + UiChrome.ToolbarButtonSpacing * (_flyoutTools.Length - 1) + flyPad * 2
                 : UiChrome.ToolbarHeight;
 
+            // When the color picker is open, leave room between the flyout and main pill for the
+            // swatch strip (LayoutColorPickerRect places it just under the flyout on bottom dock).
+            GetColorPickerPopupMetrics(out _, out int colorPh);
+            const int gapAfterFlyout = 8;
+            const int gapBeforeToolbar = 8;
+            int colorPickerBand = _colorPickerOpen ? (colorPh + gapAfterFlyout + gapBeforeToolbar) : 0;
+
             var moreAnchor = _moreButtonIndex >= 0 ? _toolbarButtons[_moreButtonIndex] : _toolbarRect;
             int flyX;
             int flyY;
@@ -583,13 +590,15 @@ public sealed partial class RegionOverlayForm : Form
             {
                 flyX = IsRightDock ? _toolbarRect.X - flyW - 8 : _toolbarRect.Right + 8;
                 flyY = moreAnchor.Y + (moreAnchor.Height / 2) - (flyH / 2);
+                if (_colorPickerOpen)
+                    flyY -= colorPickerBand;
                 flyX = Math.Clamp(flyX, 4, Math.Max(4, ClientSize.Width - flyW - 4));
                 flyY = Math.Clamp(flyY, 4, Math.Max(4, ClientSize.Height - flyH - 4));
             }
             else
             {
                 flyX = _toolbarRect.X + (_toolbarRect.Width - flyW) / 2;
-                flyY = IsBottomDock ? _toolbarRect.Y - flyH - 8 : _toolbarRect.Bottom + 8;
+                flyY = IsBottomDock ? _toolbarRect.Y - flyH - 8 - colorPickerBand : _toolbarRect.Bottom + 8;
                 flyX = Math.Clamp(flyX, 4, Math.Max(4, ClientSize.Width - flyW - 4));
                 flyY = Math.Clamp(flyY, 4, Math.Max(4, ClientSize.Height - flyH - 4));
             }
