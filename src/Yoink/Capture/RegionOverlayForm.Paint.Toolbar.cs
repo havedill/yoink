@@ -264,15 +264,8 @@ public sealed partial class RegionOverlayForm
 
     private void PaintColorPicker(Graphics g)
     {
-        // Small popup grid of color swatches
         int cols = 6, rows = 1, swatchSize = 28, pad = 4;
-        int pw = cols * (swatchSize + pad) + pad;
-        int ph = rows * (swatchSize + pad) + pad;
-
-        // Position below the color button
-        int colorBtnIdx = BtnCount - 3;
-        var colorBtn = _toolbarButtons[colorBtnIdx];
-        _colorPickerRect = PositionPopupFromAnchor(colorBtn, pw, ph);
+        _colorPickerRect = GetColorPickerBounds();
         int px = _colorPickerRect.X;
         int py = _colorPickerRect.Y;
 

@@ -97,11 +97,12 @@ public sealed partial class RegionOverlayForm
 
     private bool HandleColorPickerClick(Point p)
     {
-        if (!_colorPickerRect.Contains(p)) return false;
+        var bounds = GetColorPickerBounds();
+        if (!bounds.Contains(p)) return false;
 
         int swatchSize = 28, pad = 4;
-        int relX = p.X - _colorPickerRect.X - pad;
-        int relY = p.Y - _colorPickerRect.Y - pad;
+        int relX = p.X - bounds.X - pad;
+        int relY = p.Y - bounds.Y - pad;
         int col = relX / (swatchSize + pad);
         if (col >= 0 && col < ToolColors.Length && relY >= 0 && relY < swatchSize + pad)
         {

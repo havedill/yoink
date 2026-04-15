@@ -24,6 +24,22 @@ public sealed partial class RegionOverlayForm
             }
         }
 
+        // Color picker is painted above the bar; handle it before toolbar hit-testing so
+        // swatch clicks are not mistaken for tool buttons (anchor was BtnCount-3 vs color at BtnCount-2).
+        if (_colorPickerOpen)
+        {
+            var cpBounds = GetColorPickerBounds();
+            if (cpBounds.Contains(e.Location))
+            {
+                if (HandleColorPickerClick(e.Location))
+                    return;
+                _colorPickerOpen = false;
+                Invalidate(InflateForRepaint(cpBounds, 12));
+                RefreshToolbar();
+                return;
+            }
+        }
+
         int btn = GetToolbarButtonAt(e.Location);
         if (btn >= 0)
         {
@@ -42,15 +58,6 @@ public sealed partial class RegionOverlayForm
             if (btn < _mainBarTools.Length && _mainBarTools[btn].Mode.HasValue)
                 SetMode(_mainBarTools[btn].Mode!.Value);
             return;
-        }
-
-        // Color picker popup: check if clicked a swatch
-        if (_colorPickerOpen)
-        {
-            if (HandleColorPickerClick(e.Location))
-                return;
-            _colorPickerOpen = false;
-            Invalidate(InflateForRepaint(GetColorPickerBounds(), 12));
         }
 
         // Font picker popup
