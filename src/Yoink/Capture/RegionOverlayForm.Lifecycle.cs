@@ -12,6 +12,11 @@ namespace Yoink.Capture;
 
 public sealed partial class RegionOverlayForm
 {
+    private static Action? s_overlayKeyboardReadyCallback;
+
+    internal static void SetOverlayKeyboardReadyCallback(Action? callback)
+        => s_overlayKeyboardReadyCallback = callback;
+
     public static void CloseTransientUi()
     {
         var current = _currentOverlay;
@@ -64,6 +69,9 @@ public sealed partial class RegionOverlayForm
 
         Invalidate();
         Update();
+
+        try { s_overlayKeyboardReadyCallback?.Invoke(); }
+        finally { s_overlayKeyboardReadyCallback = null; }
 
         WindowDetector.ClearSnapshot();
         if (_windowDetectionMode != WindowDetectionMode.Off)

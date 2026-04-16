@@ -99,6 +99,9 @@ public sealed class AppSettings
     public int TranslationModel { get; set; } = 2; // 0 = Argos, 1 = Google, 2 = Open-source local
     public bool AnnotationStrokeShadow { get; set; } = true;
 
+    /// <summary>Last annotation toolbar color (Color.ToArgb()). 0 = not set yet (use overlay default).</summary>
+    public int AnnotationToolColorArgb { get; set; }
+
     // Color picker hotkey: Alt+C
     public uint PickerHotkeyModifiers { get; set; } = Native.User32.MOD_ALT;
     public uint PickerHotkeyKey { get; set; } = 0x43; // VK_C

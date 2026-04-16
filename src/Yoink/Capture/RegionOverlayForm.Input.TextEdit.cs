@@ -108,6 +108,7 @@ public sealed partial class RegionOverlayForm
         {
             _toolColor = ToolColors[col];
             _toolColorIndex = col;
+            NotifyPersistAnnotationToolColor();
             _colorPickerOpen = false;
             Invalidate(InflateForRepaint(GetColorPickerBounds(), 12));
             RefreshToolbar();

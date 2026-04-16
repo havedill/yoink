@@ -43,10 +43,15 @@ public sealed class UploadServiceTests
 
         Assert.False(UploadService.HasCredentials(UploadDestination.None, settings));
         Assert.True(UploadService.HasCredentials(UploadDestination.Catbox, settings));
-        Assert.False(UploadService.HasCredentials(UploadDestination.Imgur, settings));
+        // Imgur: app supplies anonymous Client-ID fallback; user id is optional
+        Assert.True(UploadService.HasCredentials(UploadDestination.Imgur, settings));
 
         settings.ImgurClientId = "client-id";
         Assert.True(UploadService.HasCredentials(UploadDestination.Imgur, settings));
+
+        Assert.False(UploadService.HasCredentials(UploadDestination.ImgBB, settings));
+        settings.ImgBBApiKey = "key";
+        Assert.True(UploadService.HasCredentials(UploadDestination.ImgBB, settings));
     }
 
     [Theory]

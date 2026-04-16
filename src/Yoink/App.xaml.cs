@@ -2,6 +2,7 @@ using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using Yoink.Capture;
 using Yoink.Helpers;
 using Yoink.Native;
 using Yoink.Services;
@@ -22,6 +23,10 @@ public partial class App : Application
     private DispatcherTimer? _idleTrimTimer;
     private int _activeUploadCount;
     private volatile bool _isCapturing;
+    private bool _captureOverlayKeyboardReady;
+    private RegionOverlayForm? _launchingCaptureOverlay;
+    private readonly object _captureLaunchLock = new();
+    private CancellationTokenSource? _captureLaunchCts;
     private bool _historyRecovered;
     private bool _historyChangedHooked;
     private bool _historyMaintenanceScheduled;

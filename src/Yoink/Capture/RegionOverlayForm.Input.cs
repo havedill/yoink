@@ -172,6 +172,7 @@ public sealed partial class RegionOverlayForm
                 _textBuffer = ta.Text;
                 _textFontSize = ta.FontSize;
                 _toolColor = ta.Color;
+                NotifyPersistAnnotationToolColor();
                 _textBold = ta.Bold;
                 _textItalic = ta.Italic;
                 _textStroke = ta.Stroke;

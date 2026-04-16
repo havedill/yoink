@@ -6,6 +6,30 @@ namespace Yoink.Capture;
 
 public sealed partial class RegionOverlayForm
 {
+    /// <summary>
+    /// Invoked from the Print Screen low-level hook when the overlay may not have foreground focus.
+    /// Marshals to the UI thread and runs the same Escape path as <see cref="ProcessCmdKey"/>.
+    /// </summary>
+    internal void ProcessEscapeFromGlobalHotkey()
+    {
+        if (InvokeRequired)
+        {
+            try
+            {
+                BeginInvoke(ProcessEscapeFromGlobalHotkey);
+            }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
+            return;
+        }
+
+        if (IsDisposed || Disposing || !Visible)
+            return;
+
+        var msg = new Message();
+        ProcessCmdKey(ref msg, Keys.Escape);
+    }
+
     // ProcessCmdKey always receives ESC (OnKeyDown sometimes doesn't)
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {

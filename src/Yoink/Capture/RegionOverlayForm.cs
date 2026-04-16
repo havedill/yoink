@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -151,6 +152,8 @@ public sealed partial class RegionOverlayForm : Form
     private PickerMagnifierForm? _captureMagnifierForm;
 
     private static RegionOverlayForm? _currentOverlay;
+
+    internal static RegionOverlayForm? CurrentForEscapeRouting => _currentOverlay;
 
     // Select tool state
     private int _selectedAnnotationIndex = -1;
@@ -321,6 +324,34 @@ public sealed partial class RegionOverlayForm : Form
     };
     private int _toolColorIndex = 0;
 
+    private void ApplyInitialAnnotationToolColor(int argb)
+    {
+        if (argb == 0)
+            return;
+        try
+        {
+            var c = Color.FromArgb(argb);
+            if (c.A == 0)
+                return;
+            _toolColor = c;
+            _toolColorIndex = 0;
+            for (int i = 0; i < ToolColors.Length; i++)
+            {
+                if (ToolColors[i].ToArgb() == argb)
+                {
+                    _toolColorIndex = i;
+                    break;
+                }
+            }
+        }
+        catch { }
+    }
+
+    private void NotifyPersistAnnotationToolColor()
+    {
+        PersistAnnotationToolColor?.Invoke(_toolColor);
+    }
+
     // (typed _undoStack is defined above with annotation state)
 
     // Blank cursor for color picker (we draw our own crosshair)
@@ -334,10 +365,16 @@ public sealed partial class RegionOverlayForm : Form
     public event Action<Rectangle>? ScanRegionSelected;
     public event Action<Rectangle>? StickerRegionSelected;
     public event Action? SelectionCancelled;
+
+    /// <summary>When set, invoked after the user changes the annotation tool color (swatch or adopting from text).</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Action<Color>? PersistAnnotationToolColor { get; set; }
+
     public RegionOverlayForm(Bitmap screenshot, Rectangle virtualBounds,
         CaptureMode initialMode = CaptureMode.Rectangle,
         WindowDetectionMode windowDetectionMode = WindowDetectionMode.WindowOnly,
-        Point? cursorAtLaunch = null)
+        Point? cursorAtLaunch = null,
+        int annotationToolColorArgb = 0)
     {
         _screenshot = screenshot;
         _virtualBounds = virtualBounds;
@@ -367,6 +404,7 @@ public sealed partial class RegionOverlayForm : Form
 
         SetupForm();
         CalcToolbar();
+        ApplyInitialAnnotationToolColor(annotationToolColorArgb);
 
         _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
         _animTimer.Tick += (_, _) =>
