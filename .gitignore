@@ -27,6 +27,8 @@ bld/
 
 ## Release artifacts
 release-hdr/
+release/
+dist/
 
 ## OS
 Thumbs.db

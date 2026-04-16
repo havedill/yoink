@@ -53,6 +53,7 @@ The Windows `RegisterHotKey()` API cannot intercept the Print Screen key because
 - **Annotation tools flyout opens by default** -- The "more tools" flyout (arrow, text, blur, draw, etc.) opens automatically when the capture overlay appears, so tools are immediately accessible without clicking the "..." button.
 - **Smarter Escape key behavior** -- Escape now follows a priority chain: (1) cancel an active operation (mid-drag, popup, typing), (2) return to the last capture tool if currently using an annotation tool, (3) close the overlay. In rectangle/freeform select mode, Escape exits the overlay in a single press instead of requiring two.
 - **Keyboard focus fix** -- The overlay re-acquires keyboard focus after toolbar creation, fixing an issue where Escape and other keys would not register on the first capture.
+- **Annotation color memory** -- The color you pick for annotations (toolbar swatch) is saved in settings and comes back on the next capture, so you do not have to re-select it every time.
 
 ### Upload-from-preview button
 The snapshot preview toast now includes an always-visible **Upload** pill button in the lower-left corner. Clicking it kicks off an upload to your configured destination and swaps the preview for a pinned "Uploading to {host}…" status toast, which is then replaced by the usual success toast (URL copied to clipboard) or an error toast. This replaces the removed "auto-upload after capture" option: uploads are now explicit, one-click, and opt-in per capture.
@@ -156,13 +157,33 @@ Sticker uploads use the same upload destinations as normal image uploads.
 
 ## Build from source
 
+Requires [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
+
+### Quick publish
+
 ```
 git clone https://github.com/havedill/yoink.git
 cd yoink
 dotnet publish src/Yoink/Yoink.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o release
 ```
 
-Requires [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
+This writes the self-contained single-file app under `release/`. GitHub Actions uses the folder name `publish/` instead; both are valid—only the `-o` path differs.
+
+### Build script (publish + zip)
+
+From the repo root, Windows PowerShell:
+
+```powershell
+.\scripts\build.ps1
+```
+
+Optional: `-Rid win-x86` / `win-arm64`, `-SkipTests` if you need to bypass tests. Published files go to **`release/`** by default; the zip is **`dist/Yoink-{version}-win-x64.zip`** (version comes from `src/Yoink/Yoink.csproj`).
+
+### What’s in the zip (and why you see `Assets`)
+
+`PublishSingleFile` bundles the main executable and dependencies into **`Yoink.exe`**, but the publish output is **not** literally one file. The project copies **`Assets/Clip/**`** next to the exe (local CLIP / semantic image-search runtime files loaded from disk). **Ship the extracted folder as-is**—do not distribute only `Yoink.exe` without that `Assets/Clip` tree or bundled image search will not find its models.
+
+Provider icons under **`src/Yoink/Assets`** (PNG/SVG) are WPF **resources** compiled into the app; they are not loose files in the zip. The top-level **`assets/`** folder in the repo (banner, screenshots for this README) is **not** part of the application build.
 
 ## Acknowledgments
 

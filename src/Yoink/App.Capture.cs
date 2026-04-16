@@ -253,27 +253,58 @@ public partial class App
         // Capture cursor position now, before the background thread runs
         var cursorPos = System.Windows.Forms.Cursor.Position;
 
+        lock (_captureLaunchLock)
+        {
+            _captureOverlayKeyboardReady = false;
+            _launchingCaptureOverlay = null;
+            _captureLaunchCts?.Dispose();
+            _captureLaunchCts = new CancellationTokenSource();
+        }
+
+        RegionOverlayForm.SetOverlayKeyboardReadyCallback(() =>
+        {
+            Dispatcher.BeginInvoke(NotifyOverlayKeyboardReady);
+        });
+
         var thread = new Thread(() =>
         {
+            CancellationToken token;
+            lock (_captureLaunchLock)
+                token = _captureLaunchCts!.Token;
+
             Bitmap? screenshot = null;
+            RegionOverlayForm? overlay = null;
             try
             {
+                token.ThrowIfCancellationRequested();
                 bool showCursor = _settingsService!.Settings.ShowCursor;
                 var (bmp, bounds) = ScreenCapture.CaptureCurrentScreen(showCursor);
+                token.ThrowIfCancellationRequested();
                 screenshot = bmp;
 
-                var overlay = new RegionOverlayForm(screenshot, bounds, initialMode, _settingsService!.Settings.WindowDetection, cursorPos)
+                overlay = new RegionOverlayForm(screenshot, bounds, initialMode, _settingsService!.Settings.WindowDetection, cursorPos,
+                    _settingsService.Settings.AnnotationToolColorArgb)
                 {
                     ShowCrosshairGuides = _settingsService!.Settings.ShowCrosshairGuides,
                     DetectWindows = _settingsService.Settings.DetectWindows,
                     ShowCaptureMagnifier = _settingsService.Settings.ShowCaptureMagnifier,
                     AnnotationStrokeShadow = _settingsService.Settings.AnnotationStrokeShadow,
-                    CaptureDockSide = _settingsService.Settings.CaptureDockSide
+                    CaptureDockSide = _settingsService.Settings.CaptureDockSide,
+                    PersistAnnotationToolColor = c =>
+                    {
+                        _settingsService.Settings.AnnotationToolColorArgb = c.ToArgb();
+                        _settingsService.Save();
+                    }
                 };
+                lock (_captureLaunchLock)
+                    _launchingCaptureOverlay = overlay;
+
+                token.ThrowIfCancellationRequested();
+
                 overlay.SetEnabledTools(_settingsService.Settings.EnabledTools);
                 overlay.SetShowToolNumberBadges(_settingsService.Settings.ShowToolNumberBadges);
 
-                overlay.RegionSelected += sel =>
+                overlay!.RegionSelected += sel =>
                 {
                     overlay.Hide();
                     using var annotated = overlay.RenderAnnotatedBitmap();
@@ -415,28 +446,122 @@ public partial class App
                     Dispatcher.BeginInvoke(() => _isCapturing = false);
                 };
 
-                try
-                {
-                    System.Windows.Forms.Application.Run(overlay);
-                }
-                finally
-                {
-                    screenshot.Dispose();
-                }
+                System.Windows.Forms.Application.Run(overlay);
+            }
+            catch (OperationCanceledException)
+            {
+                try { Dispatcher.Invoke(FinalizePendingCaptureLaunchAbort); }
+                catch { FinalizePendingCaptureLaunchAbort(); }
             }
             catch (Exception ex)
             {
-                screenshot?.Dispose();
+                try { overlay?.Dispose(); } catch { }
+                lock (_captureLaunchLock)
+                {
+                    _launchingCaptureOverlay = null;
+                    _captureLaunchCts?.Dispose();
+                    _captureLaunchCts = null;
+                    _captureOverlayKeyboardReady = false;
+                }
                 Dispatcher.BeginInvoke(() =>
                 {
                     _isCapturing = false;
                     ToastWindow.ShowError("Capture error", ex.Message);
                 });
             }
+            finally
+            {
+                screenshot?.Dispose();
+            }
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.IsBackground = true;
         thread.Start();
+    }
+
+    /// <summary>
+    /// Low-level keyboard hook (Print Screen path): cancel pending launch, or forward Escape to the
+    /// region overlay when it does not have foreground focus.
+    /// </summary>
+    private bool TryConsumeEscapeForActiveCapture()
+    {
+        bool pendingAbort;
+        lock (_captureLaunchLock)
+        {
+            pendingAbort = _isCapturing && !_captureOverlayKeyboardReady;
+            if (pendingAbort)
+                _captureLaunchCts?.Cancel();
+        }
+
+        if (pendingAbort)
+        {
+            Dispatcher.BeginInvoke(FinalizePendingCaptureLaunchAbort);
+            return true;
+        }
+
+        if (!_isCapturing)
+            return false;
+
+        var overlay = RegionOverlayForm.CurrentForEscapeRouting;
+        if (overlay is null || overlay.IsDisposed || !overlay.Visible)
+            return false;
+
+        try
+        {
+            if (!overlay.IsHandleCreated)
+                return false;
+            overlay.ProcessEscapeFromGlobalHotkey();
+        }
+        catch (ObjectDisposedException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void FinalizePendingCaptureLaunchAbort()
+    {
+        RegionOverlayForm? ov;
+        lock (_captureLaunchLock)
+        {
+            ov = _launchingCaptureOverlay;
+            _launchingCaptureOverlay = null;
+            _captureLaunchCts?.Dispose();
+            _captureLaunchCts = null;
+            _captureOverlayKeyboardReady = false;
+            _isCapturing = false;
+        }
+
+        if (ov is { IsDisposed: false })
+        {
+            try
+            {
+                if (ov.IsHandleCreated)
+                    ov.Invoke(() =>
+                    {
+                        try { ov.Close(); } catch { }
+                    });
+                else
+                    ov.Dispose();
+            }
+            catch { }
+        }
+    }
+
+    private void NotifyOverlayKeyboardReady()
+    {
+        lock (_captureLaunchLock)
+        {
+            _captureOverlayKeyboardReady = true;
+            _launchingCaptureOverlay = null;
+            _captureLaunchCts?.Dispose();
+            _captureLaunchCts = null;
+        }
     }
 
 }

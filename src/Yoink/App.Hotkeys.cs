@@ -13,6 +13,7 @@ public partial class App
     {
         _hotkeyService?.Dispose();
         _hotkeyService = new HotkeyService();
+        _hotkeyService.TryConsumeEscapeForActiveCapture = TryConsumeEscapeForActiveCapture;
         _hotkeyService.UnregisterAll();
         _hotkeyService.HotkeyPressed += OnHotkeyPressed;
         _hotkeyService.OcrHotkeyPressed += OnOcrHotkeyPressed;

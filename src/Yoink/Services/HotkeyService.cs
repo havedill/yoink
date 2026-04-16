@@ -43,6 +43,13 @@ public sealed class HotkeyService : IDisposable
     private User32.LowLevelKeyboardProc? _hookProc;
     private readonly List<(int id, uint modifiers, Action? getEvent)> _hookBindings = new();
 
+    /// <summary>
+    /// When set, Escape during an active region capture is offered here first (low-level hook, same thread
+    /// as Print Screen). Return true to consume the key — used to cancel a pending launch or to forward
+    /// Escape to the overlay when Windows focus stealing prevents the overlay from seeing the key.
+    /// </summary>
+    public Func<bool>? TryConsumeEscapeForActiveCapture { get; set; }
+
     /// <summary>Force-unregister all hotkey IDs to clear any stale registrations from previous instances.</summary>
     public void UnregisterAll()
     {
@@ -251,6 +258,14 @@ public sealed class HotkeyService : IDisposable
         {
             var kbd = Marshal.PtrToStructure<User32.KBDLLHOOKSTRUCT>(lParam);
             int msg = (int)wParam;
+
+            if (TryConsumeEscapeForActiveCapture != null
+                && kbd.vkCode == User32.VK_ESCAPE
+                && (msg == User32.WM_KEYDOWN || msg == User32.WM_SYSKEYDOWN))
+            {
+                if (TryConsumeEscapeForActiveCapture())
+                    return (IntPtr)1;
+            }
 
             // Only handle Print Screen key-up (matches how the OS delivers this key)
             if (kbd.vkCode == User32.VK_SNAPSHOT && (msg == User32.WM_KEYUP || msg == User32.WM_SYSKEYUP))
