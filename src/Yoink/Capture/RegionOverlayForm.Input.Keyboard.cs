@@ -64,8 +64,8 @@ public sealed partial class RegionOverlayForm
                         _nextStepNumber = 1;
                         MarkCommittedAnnotationsDirty();
                         Invalidate();
+                        return true;
                     }
-                    return true;
                 }
             }
 
@@ -110,14 +110,12 @@ public sealed partial class RegionOverlayForm
                 return true;
             }
 
-            // In the annotation phase, Escape never cancels or switches modes once all
-            // popups/drags have been closed above. The user stays locked into their
-            // committed selection (the earlier annotation-wipe branch handled empty state).
-            if (_selectionCommitted)
+            // Annotation phase with ink on the canvas: keep the overlay (first Escape clears it above).
+            if (_selectionCommitted && _undoStack.Count > 0)
                 return true;
 
             // If in an annotation tool, return to the last capture mode instead of closing
-            if (ToolDef.IsAnnotationTool(_mode))
+            if (!_selectionCommitted && ToolDef.IsAnnotationTool(_mode))
             {
                 SetMode(_lastCaptureMode);
                 return true;
