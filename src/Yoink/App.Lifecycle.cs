@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime;
 using System.Windows;
 using System.Windows.Threading;
@@ -197,14 +198,49 @@ public partial class App
 
     private void HistoryService_Changed()
     {
-        lock (_historyGate)
-        {
-            if (_historyService is null || _settingsService is null)
-                return;
+        QueueImageSearchIndexRefresh();
+    }
 
-            if (_settingsService.Settings.AutoIndexImages)
-                _imageSearchIndexService?.RequestSync(_historyService.ImageEntries, _settingsService.Settings.OcrLanguageTag);
-        }
+    private void QueueImageSearchIndexRefresh()
+    {
+        if (Interlocked.Exchange(ref _historyIndexRefreshScheduled, 1) != 0)
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1500).ConfigureAwait(false);
+
+                HistoryService? historyService;
+                ImageSearchIndexService? imageSearchIndexService;
+                SettingsService? settingsService;
+                lock (_historyGate)
+                {
+                    historyService = _historyService;
+                    imageSearchIndexService = _imageSearchIndexService;
+                    settingsService = _settingsService;
+                }
+
+                if (historyService is null ||
+                    imageSearchIndexService is null ||
+                    settingsService is null ||
+                    !settingsService.Settings.AutoIndexImages)
+                {
+                    return;
+                }
+
+                imageSearchIndexService.RequestSync(historyService.ImageEntries, settingsService.Settings.OcrLanguageTag);
+            }
+            catch (Exception ex)
+            {
+                AppDiagnostics.LogError("lifecycle.history-index-refresh", ex);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _historyIndexRefreshScheduled, 0);
+            }
+        });
     }
 
     private void ScheduleIdleMemoryTrim()
@@ -226,14 +262,45 @@ public partial class App
             return;
         }
 
-        SettingsWindow.TrimThumbCache(160);
+        if (Interlocked.CompareExchange(ref _idleTrimInProgress, 1, 0) != 0)
+        {
+            ScheduleIdleMemoryTrim();
+            return;
+        }
 
-        try { LocalStickerEngineService.ReleaseSessions(); } catch (Exception ex) { AppDiagnostics.LogError("lifecycle.trim-idle-memory.release-sticker-sessions", ex); }
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                if (now - _lastIdleTrimUtc < MinimumIdleTrimInterval)
+                    return;
 
-        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
-        ProcessMemory.TrimCurrentProcessWorkingSet();
+                using var process = Process.GetCurrentProcess();
+                var privateBytes = process.PrivateMemorySize64;
+                SettingsWindow.TrimThumbCache(privateBytes >= IdleTrimPrivateBytesThreshold ? 64 : 96);
+
+                if (privateBytes < IdleTrimPrivateBytesThreshold)
+                {
+                    _lastIdleTrimUtc = now;
+                    return;
+                }
+
+                try { LocalStickerEngineService.ReleaseSessions(); } catch (Exception ex) { AppDiagnostics.LogError("lifecycle.trim-idle-memory.release-sticker-sessions", ex); }
+
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, blocking: false, compacting: true);
+                ProcessMemory.TrimCurrentProcessWorkingSet();
+                _lastIdleTrimUtc = now;
+            }
+            catch (Exception ex)
+            {
+                AppDiagnostics.LogError("lifecycle.trim-idle-memory", ex);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _idleTrimInProgress, 0);
+            }
+        });
     }
 }

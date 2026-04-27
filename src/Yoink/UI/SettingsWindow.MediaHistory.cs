@@ -334,7 +334,7 @@ public partial class SettingsWindow
             var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName = ffmpeg,
-                Arguments = $"-y -ss {VideoThumbnailSeekOffset} -i \"{videoPath}\" -vframes 1 -q:v 4 \"{thumbPath}\"",
+                Arguments = $"-y -ss {VideoThumbnailSeekOffset} -i \"{videoPath}\" -vf \"scale=480:-1\" -vframes 1 -q:v 3 \"{thumbPath}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardError = true,

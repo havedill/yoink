@@ -31,6 +31,12 @@ public partial class App : Application
     private bool _historyChangedHooked;
     private bool _historyMaintenanceScheduled;
 
+    private const long IdleTrimPrivateBytesThreshold = 384L * 1024 * 1024;
+    private static readonly TimeSpan MinimumIdleTrimInterval = TimeSpan.FromMinutes(2);
+    private int _idleTrimInProgress;
+    private DateTime _lastIdleTrimUtc;
+    private int _historyIndexRefreshScheduled;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         if (e.Args.Any(a => a.Equals("--uninstall", StringComparison.OrdinalIgnoreCase) || a.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
