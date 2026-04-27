@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -137,9 +136,9 @@ public sealed class VideoRecorder : IDisposable
 
         string codecArgs = _format switch
         {
-            Format.WebM => $"-c:v libvpx-vp9 -crf 30 -b:v 0 -pix_fmt yuv420p -vf scale={outW}:{outH}",
+            Format.WebM => $"-c:v libvpx-vp9 -deadline good -cpu-used 2 -row-mt 1 -crf 30 -b:v 0 -pix_fmt yuv420p -vf scale={outW}:{outH}",
             Format.MKV => $"-c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p -vf scale={outW}:{outH}",
-            _ => $"-c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p -vf scale={outW}:{outH}",
+            _ => $"-c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p -vf scale={outW}:{outH} -movflags +faststart",
         };
 
         var args = $"-y -f rawvideo -pix_fmt bgra -s {_region.Width}x{_region.Height} -r {_fps} -i pipe:0 {codecArgs} \"{outputPath}\"";
@@ -249,6 +248,8 @@ public sealed class VideoRecorder : IDisposable
         var ct = _cts.Token;
         byte[]? buffer = null;
 
+        using var frameCapturer = ScreenCapture.CreateRecordingFrameCapturer(_region, _showCursor);
+
         while (!ct.IsCancellationRequested)
         {
             if ((DateTime.UtcNow - _startTime).TotalMilliseconds >= _maxDurationMs)
@@ -265,18 +266,8 @@ public sealed class VideoRecorder : IDisposable
             var sw = Stopwatch.StartNew();
             try
             {
-                using var bmp = ScreenCapture.CaptureRegionForRecording(_region, _showCursor);
-                var data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height),
-                    ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                try
-                {
-                    int byteCount = data.Stride * data.Height;
-                    if (buffer == null || buffer.Length != byteCount)
-                        buffer = new byte[byteCount];
-                    System.Runtime.InteropServices.Marshal.Copy(data.Scan0, buffer, 0, byteCount);
-                    _ffmpegBufferedStdin?.Write(buffer, 0, byteCount);
-                }
-                finally { bmp.UnlockBits(data); }
+                buffer = frameCapturer.CaptureToBuffer(buffer);
+                _ffmpegBufferedStdin?.Write(buffer, 0, buffer.Length);
 
                 Interlocked.Increment(ref _frameCount);
             }
@@ -359,6 +350,10 @@ public sealed class VideoRecorder : IDisposable
         string ext = Path.GetExtension(videoPath);
         string tempOut = Path.Combine(dir, Path.GetFileNameWithoutExtension(videoPath) + "_muxed" + ext);
 
+        string muxerArgs = Path.GetExtension(tempOut).Equals(".mp4", StringComparison.OrdinalIgnoreCase)
+            ? " -movflags +faststart"
+            : "";
+
         try
         {
             string args;
@@ -366,7 +361,7 @@ public sealed class VideoRecorder : IDisposable
             {
                 // Single audio source — mux directly
                 string audioCodec = ext.Equals(".webm", StringComparison.OrdinalIgnoreCase) ? "libopus" : "aac";
-                args = $"-y -i \"{videoPath}\" -i \"{audioFiles[0]}\" -c:v copy -c:a {audioCodec} -shortest \"{tempOut}\"";
+                args = $"-y -i \"{videoPath}\" -i \"{audioFiles[0]}\" -c:v copy -c:a {audioCodec} -shortest{muxerArgs} \"{tempOut}\"";
             }
             else
             {
@@ -374,7 +369,7 @@ public sealed class VideoRecorder : IDisposable
                 string audioCodec = ext.Equals(".webm", StringComparison.OrdinalIgnoreCase) ? "libopus" : "aac";
                 args = $"-y -i \"{videoPath}\" -i \"{audioFiles[0]}\" -i \"{audioFiles[1]}\" " +
                        $"-filter_complex \"[1:a][2:a]amix=inputs=2:duration=shortest[a]\" " +
-                       $"-c:v copy -c:a {audioCodec} -map 0:v -map \"[a]\" -shortest \"{tempOut}\"";
+                       $"-c:v copy -c:a {audioCodec} -map 0:v -map \"[a]\" -shortest{muxerArgs} \"{tempOut}\"";
             }
 
             var proc = new Process
